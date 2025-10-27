@@ -1,0 +1,78 @@
+export default ({ config }) => ({
+  ...config,
+  expo: {
+    name: "StockTally",
+    slug: "StockTally",
+    version: "2.0.2",
+    orientation: "portrait",
+    icon: "./assets/images/icon.png",
+    scheme: "stocktally",
+    userInterfaceStyle: "automatic",
+    newArchEnabled: true,
+
+    ios: {
+      icon: "./assets/images/icon.png",
+      supportsTablet: true,
+      buildNumber: "8",
+      bundleIdentifier: "com.asif.Stocktally",
+      infoPlist: {
+        NSPhotoLibraryAddUsageDescription:
+          "Allow this app to save files to your photo library",
+        UIBackgroundModes: ["fetch"],
+        ITSAppUsesNonExemptEncryption: false,
+      },
+    },
+
+    android: {
+      adaptiveIcon: {
+        foregroundImage: "./assets/images/adaptive-icon.png",
+        backgroundColor: "#ffffff",
+      },
+      edgeToEdgeEnabled: true,
+      package: "com.asif.Stocktally",
+      versionCode: 13,
+      permissions: [],
+    },
+
+    runtimeVersion: { policy: "appVersion" },
+
+    updates: {
+      url: "https://u.expo.dev/e5895148-30d8-4010-9c1b-5b7f3adc3c6d",
+      fallbackToCacheTimeout: 0,
+    },
+
+    web: {
+      bundler: "metro",
+      output: "static",
+      favicon: "./assets/images/favicon.png",
+    },
+
+    // ✅ Conditional plugin setup
+    plugins: [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          image: "./assets/images/splash-icon.png",
+          imageWidth: 200,
+          resizeMode: "contain",
+          backgroundColor: "#ffffff",
+        },
+      ],
+      "expo-sqlite",
+      "expo-web-browser",
+
+      // 👇 Only include expo-maps if building for Android
+      ...(process.env.EXPO_OS === "android" ? ["expo-maps"] : []),
+    ],
+
+    experiments: { typedRoutes: true },
+
+    extra: {
+      excludeModules: ["expo-sharing"],
+      router: {},
+      eas: { projectId: "e5895148-30d8-4010-9c1b-5b7f3adc3c6d" },
+      revenuecatApiKey: "appl_baZiIBClpFlhCpNAJFYjduVfJxp",
+    },
+  },
+});

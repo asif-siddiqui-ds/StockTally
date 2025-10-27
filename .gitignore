@@ -1,39 +1,54 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
-# dependencies
+# --- Node / Expo ---
 node_modules/
-
-# Expo
-.expo/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 dist/
 web-build/
-expo-env.d.ts
+.expo/
+.expo-shared/
+.bundle/
 
-# Native
-.kotlin/
-*.orig.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-
-# Metro
-.metro-health-check*
-
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
-
-# macOS
+# --- React Native / Metro ---
 .DS_Store
-*.pem
+.vscode/
+*.iml
+*.log
 
-# local env files
-.env*.local
+# --- iOS ---
+ios/Pods/
+ios/build/
+*.xcworkspace/xcshareddata/
+**/*.xcuserdatad/
+**/*.xcuserdata/
+ios/*.xcodeproj/project.xcworkspace/
+ios/*.xcuserstate
 
-# typescript
-*.tsbuildinfo
+# --- Android ---
+android/.gradle/
+android/.idea/
+android/app/build/
+android/build/
+android/local.properties
 
-app-example
+# --- Environment & Secrets ---
+.env
+.env.*.local
+.env.local
+app.config.local.ts
+app.config.local.js
+google-services.json
+GoogleService-Info.plist
+
+# --- Firebase / Appwrite / RevenueCat Cache ---
+.firebase/
+appwrite.json
+appwrite-export/
+tmp/
+*.db
+
+# --- Misc ---
+coverage/
+*.lock
+*.tmp
+*.bak

@@ -1,0 +1,801 @@
+// import ScreenWrapper from '@/components/ScreenWrapper';
+// import { Picker } from '@react-native-picker/picker';
+// import * as FileSystem from 'expo-file-system';
+// import * as IntentLauncher from 'expo-intent-launcher';
+// import * as Print from 'expo-print';
+// import { useRouter } from 'expo-router';
+// import React, { useEffect, useState } from 'react';
+// import { Alert, Button, Dimensions, Platform, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
+// import { BarChart } from 'react-native-chart-kit';
+// import { account } from '../../appwrite';
+// import { SaleItem, StockItem, getSaleItems, getStockItems } from '../../lib/storage';
+
+// const screenWidth = Dimensions.get('window').width;
+
+// interface TableRowData {
+//   name: string;
+//   stock: number;
+//   sold: number;
+//   income: number;
+// }
+
+// const Dashboard = () => {
+//   const [stockItems, setStockItems] = useState<StockItem[]>([]);
+//   const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
+//   const [filter, setFilter] = useState<'all' | 'daily' | 'weekly' | 'monthly'>('daily');
+//   const [tableData, setTableData] = useState<TableRowData[]>([]);
+//   const [totalIncome, setTotalIncome] = useState<number>(0);
+//   const router = useRouter();
+
+//   /**
+//    * 🔄 Fetch data from Appwrite
+//    */
+//   useEffect(() => {
+//     const fetchData = async () => {
+//       const stock = await getStockItems();
+//       const sales = await getSaleItems();
+//       setStockItems(stock);
+//       setSaleItems(sales);
+//     };
+//     fetchData();
+//   }, []);
+
+//   /**
+//    * 🔄 Update the table when data changes
+//    */
+//   useEffect(() => {
+//     if (stockItems.length > 0 && saleItems.length > 0) {
+//       updateTableData();
+//     }
+//   }, [stockItems, saleItems, filter]);
+
+//   /**
+//    * 🔄 Apply Filter Logic
+//    */
+//   const now = new Date();
+//   let filteredSales: SaleItem[] = saleItems;
+
+//   if (filter === 'daily') {
+//     filteredSales = saleItems.filter(item => new Date(item.date).toDateString() === now.toDateString());
+//   } else if (filter === 'weekly') {
+//     const startOfWeek = new Date(now);
+//     startOfWeek.setDate(now.getDate() - now.getDay());
+//     filteredSales = saleItems.filter(item => new Date(item.date) >= startOfWeek);
+//   } else if (filter === 'monthly') {
+//     filteredSales = saleItems.filter(item => new Date(item.date).getMonth() === now.getMonth());
+//   }
+
+//   /**
+//    * 🔄 Update Table Data
+//    */
+//   const updateTableData = () => {
+//     const allItems = [...new Set([...stockItems.map(i => i.name), ...saleItems.map(i => i.name)])];
+//     const updatedTableData = allItems.map(name => {
+//       const stock = stockItems.find(item => item.name === name);
+//       const soldItems = filteredSales.filter(item => item.name === name);
+//       const totalSold = soldItems.reduce((sum, item) => sum + item.quantity, 0);
+//       const income = soldItems.reduce((sum, item) => sum + (item.quantity * (item.price || 0)), 0);
+//       return {
+//         name,
+//         stock: stock?.quantity || 0,
+//         sold: totalSold,
+//         income,
+//       };
+//     });
+
+//     const totalIncomeValue = updatedTableData.reduce((sum, row) => sum + row.income, 0);
+
+//     setTableData(updatedTableData);
+//     setTotalIncome(totalIncomeValue);
+//   };
+
+//   /**
+//    * 📄 Export Report to PDF
+//    */
+//   const exportReport = async () => {
+//     try {
+//       const html = `
+//         <html>
+//           <body>
+//             <h1>Dashboard Report</h1>
+//             <h2>Total Income: £${totalIncome.toFixed(2)}</h2>
+//             <table border="1" cellspacing="0" cellpadding="4">
+//               <tr><th>Item</th><th>Stock</th><th>Sold</th><th>Income</th></tr>
+//               ${tableData
+//                 .map(
+//                   row =>
+//                     `<tr><td>${row.name}</td><td>${row.stock}</td><td>${row.sold}</td><td>£${row.income.toFixed(2)}</td></tr>`
+//                 )
+//                 .join('')}
+//             </table>
+//           </body>
+//         </html>
+//       `;
+
+//       const { uri } = await Print.printToFileAsync({ html });
+//       const fileUri = `${FileSystem.documentDirectory}DashboardReport.pdf`;
+
+//       await FileSystem.moveAsync({
+//         from: uri,
+//         to: fileUri,
+//       });
+
+//       if (Platform.OS === 'android') {
+//         await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+//           data: fileUri,
+//           flags: 1,
+//         });
+//       } else {
+//         alert('Sharing not supported on iOS for this method');
+//       }
+//     } catch (error) {
+//       console.error("Export report failed:", error);
+//     }
+//   };
+
+//   /**
+//    * 🔄 Handle Logout
+//    */
+//   const handleLogout = async () => {
+//     try {
+//       await account.deleteSession('current');
+//       router.push('../(auth)/LoginScreen');
+//     } catch (error) {
+//       const err = error as Error;
+//       Alert.alert('Logout Failed', err.message);
+//     }
+//   };
+
+//   /**
+//    * 🔄 Chart Data
+//    */
+//   const salesChartData = {
+//     labels: tableData.map(d => d.name),
+//     datasets: [{ data: tableData.map(d => d.sold) }],
+//   };
+
+//   const incomeChartData = {
+//     labels: tableData.map(d => d.name),
+//     datasets: [{ data: tableData.map(d => d.income) }],
+//   };
+
+//   return (
+//     <ScreenWrapper>
+//     <ScrollView style={styles.container}>
+//       <Text style={styles.title}>📊 Dashboard</Text>
+
+//       <Picker selectedValue={filter} onValueChange={value => setFilter(value)} style={styles.picker}>
+//         <Picker.Item label="All Time" value="all" />
+//         <Picker.Item label="Daily" value="daily" />
+//         <Picker.Item label="Weekly" value="weekly" />
+//         <Picker.Item label="Monthly" value="monthly" />
+//       </Picker>
+
+//       <Text style={styles.subtitle}>💰 Total Income: £{totalIncome.toFixed(2)}</Text>
+
+//       <TouchableOpacity style={styles.button} onPress={exportReport}>
+//         <Text style={styles.buttonText}>📄 Export Report</Text>
+//       </TouchableOpacity>
+
+//       <BarChart
+//       data={salesChartData}
+//       width={screenWidth - 32}
+//       height={220}
+//       chartConfig={chartConfig('#0000FF')}
+//       yAxisLabel="£"
+//       yAxisSuffix=""                    // ✅ You can add "K" for thousands if needed
+//       />
+//       <BarChart
+//       data={incomeChartData}
+//       width={screenWidth - 32}
+//       height={220}
+//       chartConfig={chartConfig('#008000')}
+//       yAxisLabel="£"                    // ✅ Adds the prefix label
+//       yAxisSuffix=""                    // ✅ Suffix if you want
+//       />
+
+
+
+
+//       <Button title="Logout" onPress={handleLogout} />
+//     </ScrollView>
+//     </ScreenWrapper>
+//   );
+// };
+
+// const chartConfig = (color: string) => ({
+//   backgroundColor: '#ffffff',
+//   backgroundGradientFrom: '#ffffff',
+//   backgroundGradientTo: '#ffffff',
+//   decimalPlaces: 2,
+//   color: (opacity = 1) => `${color}${Math.round(opacity * 255).toString(16)}`,
+//   labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+// });
+
+// const styles = StyleSheet.create({
+//   container: {
+//     padding: 16,
+//     backgroundColor: '#f9f9f9',
+//   },
+//   title: {
+//     fontSize: 22,
+//     fontWeight: 'bold',
+//     marginVertical: 10,
+//     color: '#333',
+//   },
+//   subtitle: {
+//     fontSize: 16,
+//     marginBottom: 6,
+//   },
+//   picker: {
+//     backgroundColor: '#fff',
+//     borderRadius: 8,
+//     marginBottom: 10,
+//   },
+//   tableHeader: {
+//     flexDirection: 'row',
+//     borderBottomWidth: 1,
+//     paddingBottom: 4,
+//     marginBottom: 4,
+//     backgroundColor: '#e0e0e0',
+//   },
+//   tableRow: {
+//     flexDirection: 'row',
+//     paddingVertical: 4,
+//     borderBottomWidth: 0.5,
+//     borderColor: '#ccc',
+//   },
+//   cell: {
+//     flex: 1,
+//     textAlign: 'left',
+//     paddingHorizontal: 4,
+//   },
+//   chart: {
+//     marginVertical: 16,
+//     borderRadius: 8,
+//   },
+//   button: {
+//     backgroundColor: '#0066cc',
+//     padding: 10,
+//     borderRadius: 8,
+//     alignItems: 'center',
+//     marginVertical: 10,
+//   },
+//   buttonText: {
+//     color: '#fff',
+//     fontWeight: '600',
+//   },
+//   headerCell: {
+//     fontWeight: 'bold',
+//   },
+// });
+
+// export default Dashboard;
+
+// import ScreenWrapper from '@/components/ScreenWrapper';
+// import { Picker } from '@react-native-picker/picker';
+// import * as FileSystem from 'expo-file-system';
+// import * as Print from 'expo-print';
+// import React, { useEffect, useRef, useState } from 'react';
+// import { Button, Dimensions, ScrollView, StyleSheet, Text, View } from 'react-native';
+// import { BarChart, LineChart } from 'react-native-chart-kit';
+// import { SaleItem, StockItem, getSaleItems, getStockItems } from '../../lib/storage';
+
+// const screenWidth = Dimensions.get('window').width;
+
+// interface TableRowData {
+//   name: string;
+//   stock: number;
+//   sold: number;
+//   income: number;
+// }
+
+// const Dashboard = () => {
+//   const [stockItems, setStockItems] = useState<StockItem[]>([]);
+//   const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
+//   const [filter, setFilter] = useState<'all' | 'daily' | 'weekly' | 'monthly'>('all');
+//   const [tableData, setTableData] = useState<TableRowData[]>([]);
+//   const [totalIncome, setTotalIncome] = useState<number>(0);
+//   const [totalStock, setTotalStock] = useState<number>(0);
+
+//   // Date Pickers
+//   const [startDate, setStartDate] = useState<Date>(new Date());
+//   const [endDate, setEndDate] = useState<Date>(new Date());
+//   const [showStartPicker, setShowStartPicker] = useState(false);
+//   const [showEndPicker, setShowEndPicker] = useState(false);
+
+//   /**
+//    * 🔄 Fetch Data from Storage
+//    */
+//   useEffect(() => {
+//     const fetchData = async () => {
+//       const stock = await getStockItems();
+//       const sales = await getSaleItems();
+//       setStockItems(stock);
+//       setSaleItems(sales);
+//     };
+//     fetchData();
+//   }, []);
+  
+//   // References for snapshots
+//   const barChartRef = useRef(null);
+//   const lineChartRef = useRef(null);
+//   /**
+//    * 🔄 Update Data when Filter or Date Changes
+//    */
+//   useEffect(() => {
+//     if (stockItems.length > 0 && saleItems.length > 0) {
+//       updateTableData();
+//     }
+//   }, [stockItems, saleItems, filter, startDate, endDate]);
+
+//   /**
+//    * 🔄 Update Table Data Logic
+//    */
+//   const updateTableData = () => {
+//     let filteredSales = saleItems;
+
+//     // Filter Logic
+//     if (filter === 'daily') {
+//       filteredSales = saleItems.filter(item => 
+//         new Date(item.date).toDateString() === new Date().toDateString()
+//       );
+//     } else if (filter === 'weekly') {
+//       const startOfWeek = new Date();
+//       startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+//       filteredSales = saleItems.filter(item => new Date(item.date) >= startOfWeek);
+//     } else if (filter === 'monthly') {
+//       filteredSales = saleItems.filter(item => new Date(item.date).getMonth() === new Date().getMonth());
+//     }
+
+//     // Apply Date Range
+//     filteredSales = filteredSales.filter(item => {
+//       const saleDate = new Date(item.date);
+//       return saleDate >= startDate && saleDate <= endDate;
+//     });
+
+//     // Update Table Data
+//     const allItems = [...new Set([...stockItems.map(i => i.name), ...saleItems.map(i => i.name)])];
+//     const updatedTableData = allItems.map(name => {
+//       const stock = stockItems.find(item => item.name === name);
+//       const soldItems = filteredSales.filter(item => item.name === name);
+//       const totalSold = soldItems.reduce((sum, item) => sum + item.quantity, 0);
+//       const income = soldItems.reduce((sum, item) => sum + (item.quantity * (item.price || 0)), 0);
+//       return {
+//         name,
+//         stock: stock?.quantity || 0,
+//         sold: totalSold,
+//         income,
+//       };
+//     });
+
+//     setTableData(updatedTableData);
+//     setTotalIncome(updatedTableData.reduce((sum, row) => sum + row.income, 0));
+//     setTotalStock(stockItems.reduce((sum, row) => sum + row.quantity, 0));
+//   };
+
+//   /**
+//    * 📅 Handle Date Changes
+//    */
+//   const handleStartDateChange = (event: any, selectedDate: Date | undefined) => {
+//     setShowStartPicker(false);
+//     if (selectedDate) setStartDate(selectedDate);
+//   };
+
+//   const handleEndDateChange = (event: any, selectedDate: Date | undefined) => {
+//     setShowEndPicker(false);
+//     if (selectedDate) setEndDate(selectedDate);
+//   };
+
+//   /**
+//    * 📄 Export Report to PDF
+//    */
+//   const html = `
+//       <html>
+//         <body>
+//           <h1>Dashboard Report</h1>
+//           <h2>Total Income: £${totalIncome.toFixed(2)}</h2>
+//           <h2>Total Stock Available: ${totalStock}</h2>
+//           <img src="${barUri}" style="width:100%; margin-bottom: 20px;" />
+//           <img src="${lineUri}" style="width:100%; margin-bottom: 20px;" />
+//           <table border="1">
+//             <tr><th>Item</th><th>Stock</th><th>Sold</th><th>Income (£)</th></tr>
+//             ${tableData.map(row =>
+//               `<tr><td>${row.name}</td><td>${row.stock}</td><td>${row.sold}</td><td>£${row.income.toFixed(2)}</td></tr>`
+//             ).join('')}
+//           </table>
+//         </body>
+//       </html>
+//     `;
+
+//     const { uri } = await Print.printToFileAsync({ html });
+//     await FileSystem.moveAsync({ from: uri, to: `${FileSystem.documentDirectory}DashboardReport.pdf` });
+//   };
+
+//   /**
+//    * 📊 Chart Data
+//    */
+//   const salesChartData = {
+//     labels: tableData.map(d => d.name),
+//     datasets: [{ data: tableData.map(d => d.sold) }],
+//   };
+
+//   const incomeChartData = {
+//     labels: tableData.map(d => d.name),
+//     datasets: [{ data: tableData.map(d => d.income) }],
+//   };
+
+//   /**
+//    * 📌 Render
+//    */
+//   return (
+//     <ScreenWrapper>
+//       <ScrollView contentContainerStyle={{ padding: 16 }}>
+//         <Text style={styles.title}>📊 Dashboard Overview</Text>
+
+//         <Picker selectedValue={filter} onValueChange={(value) => setFilter(value)} style={styles.picker}>
+//           <Picker.Item label="All Time" value="all" />
+//           <Picker.Item label="Daily" value="daily" />
+//           <Picker.Item label="Weekly" value="weekly" />
+//           <Picker.Item label="Monthly" value="monthly" />
+//         </Picker>
+
+//         <View style={styles.table}>
+//           <Text style={styles.tableHeader}>Item | Stock | Sold | Income (£)</Text>
+//           {tableData.map((row, index) => (
+//             <Text key={index} style={styles.tableRow}>
+//               {row.name} | {row.stock} | {row.sold} | £{row.income.toFixed(2)}
+//             </Text>
+//           ))}
+//         </View>
+
+//         <BarChart data={salesChartData} width={screenWidth - 32} height={220} chartConfig={chartConfig('#4682B4')} style={styles.chart} />
+        
+//         <LineChart data={incomeChartData} width={screenWidth - 32} height={220} chartConfig={chartConfig('#FF6347')} style={styles.chart} />
+
+//         <Button title="Export Report" onPress={exportReport} />
+//       </ScrollView>
+//     </ScreenWrapper>
+//   );
+// };
+
+// const chartConfig = (color: string) => ({
+//   backgroundColor: '#ffffff',
+//   backgroundGradientFrom: '#ffffff',
+//   backgroundGradientTo: '#ffffff',
+//   decimalPlaces: 2,
+//   color: (opacity = 1) => `${color}${Math.round(opacity * 255).toString(16)}`,
+//   labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+// });
+
+// const styles = StyleSheet.create({
+//   title: {
+//     fontSize: 22,
+//     fontWeight: 'bold',
+//     marginVertical: 10,
+//     textAlign: 'center',
+//   },
+//   chart: {
+//     marginVertical: 10,
+//     borderRadius: 8,
+//   },
+//   picker: {
+//     marginVertical: 10,
+//     backgroundColor: '#f0f0f0',
+//   },
+//   table: { marginTop: 20 },
+//   tableHeader: { fontWeight: 'bold', marginBottom: 5 },
+//   tableRow: { marginBottom: 3 },
+// });
+
+// export default Dashboard;
+
+// import ScreenWrapper from '@/components/ScreenWrapper';
+// import DateTimePicker from '@react-native-community/datetimepicker';
+// import { Picker } from '@react-native-picker/picker';
+// import * as FileSystem from 'expo-file-system';
+// import * as Print from 'expo-print';
+// import React, { useEffect, useRef, useState } from 'react';
+// import { Button, Dimensions, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+// import { BarChart, LineChart } from 'react-native-chart-kit';
+// import ViewShot from 'react-native-view-shot';
+// import { SaleItem, StockItem, getSaleItems, getStockItems } from '../../lib/storage';
+
+
+// const screenWidth = Dimensions.get('window').width;
+
+// interface TableRowData {
+//   name: string;
+//   stock: number;
+//   sold: number;
+//   income: number;
+// }
+
+// const Dashboard = () => {
+//   const [stockItems, setStockItems] = useState<StockItem[]>([]);
+//   const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
+//   const [filter, setFilter] = useState<'all' | 'daily' | 'weekly' | 'monthly' | 'custom'>('all');
+//   const [tableData, setTableData] = useState<TableRowData[]>([]);
+//   const [totalIncome, setTotalIncome] = useState<number>(0);
+//   const [totalStock, setTotalStock] = useState<number>(0);
+ 
+//   const [showStartPicker, setShowStartPicker] = useState(false);
+//   const [showEndPicker, setShowEndPicker] = useState(false);
+
+//   // Date Pickers
+//   const [startDate, setStartDate] = useState<Date>(new Date());
+//   const [endDate, setEndDate] = useState<Date>(new Date());
+
+//   // References for snapshots
+//   const barChartRef = useRef(null);
+//   const lineChartRef = useRef(null);
+
+//   /**
+//    * 🔄 Fetch Data from Storage
+//    */
+//   useEffect(() => {
+//     const fetchData = async () => {
+//       const stock = await getStockItems();
+//       const sales = await getSaleItems();
+//       setStockItems(stock);
+//       setSaleItems(sales);
+//     };
+//     fetchData();
+//   }, []);
+
+//   /**
+//    * 🔄 Update Data when Filter or Date Changes
+//    */
+//   useEffect(() => {
+//     if (stockItems.length > 0 && saleItems.length > 0) {
+//       updateTableData();
+//     }
+//   }, [stockItems, saleItems, filter, startDate, endDate]);
+
+//   /**
+//    * 🔄 Update Table Data Logic
+//    */
+//   const updateTableData = () => {
+//     let filteredSales = saleItems;
+
+//     // Filter Logic
+//     if (filter === 'daily') {
+//       filteredSales = saleItems.filter(item => 
+//         new Date(item.date).toDateString() === new Date().toDateString()
+//       );
+//     } else if (filter === 'weekly') {
+//       const startOfWeek = new Date();
+//       startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+//       filteredSales = saleItems.filter(item => new Date(item.date) >= startOfWeek);
+//     } else if (filter === 'monthly') {
+//       filteredSales = saleItems.filter(item => new Date(item.date).getMonth() === new Date().getMonth());
+//     } else if (filter === 'custom') {
+//       filteredSales = saleItems.filter(item => {
+//         const saleDate = new Date(item.date);
+//         return saleDate >= startDate && saleDate <= endDate;
+//       });
+//     }
+
+//     // Apply Date Range
+//     filteredSales = filteredSales.filter(item => {
+//       const saleDate = new Date(item.date);
+//       return saleDate >= startDate && saleDate <= endDate;
+//     });
+
+//     // Update Table Data
+//     const allItems = [...new Set([...stockItems.map(i => i.name), ...saleItems.map(i => i.name)])];
+//     const updatedTableData = allItems.map(name => {
+//       const stock = stockItems.find(item => item.name === name);
+//       const soldItems = filteredSales.filter(item => item.name === name);
+//       const totalSold = soldItems.reduce((sum, item) => sum + item.quantity, 0);
+//       const income = soldItems.reduce((sum, item) => sum + (item.quantity * (item.price || 0)), 0);
+//       return {
+//         name,
+//         stock: isFinite(stock?.quantity) ? stock?.quantity: 0,
+//         sold: isFinite(totalSold) ? totalSold: 0,
+//         income: isFinite(income) ? income : 0
+// ,
+//       };
+//     });
+
+//     setTableData(updatedTableData);
+//     setTotalIncome(updatedTableData.reduce((sum, row) => sum + row.income, 0));
+//     setTotalStock(stockItems.reduce((sum, row) => sum + row.quantity, 0));
+//   };
+
+//    const sanitizeValue = (value: number | null | undefined): number => {
+//     return isFinite(value ?? 0) ? value ?? 0 : 0;
+//   };
+
+//   const chartConfig = (color: string) => ({
+//     backgroundColor: '#ffffff',
+//     backgroundGradientFrom: '#ffffff',
+//     backgroundGradientTo: '#ffffff',
+//     decimalPlaces: 2,
+//     color: (opacity = 1) => `${color}${Math.round(opacity * 255).toString(16)}`,
+//     labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+//     useShadowColorFromDataset: false,
+//   });
+
+//   const platformHandlers = Platform.OS === 'web' ? {} : {
+//     onStartShouldSetResponder: () => true,
+//     onResponderMove: () => {},
+//   };
+
+//   const safeData = tableData.map(d => (isFinite(d.sold) ? d.sold : 0));
+//   const safeIncome = tableData.map(d => (isFinite(d.income) ? d.income : 0));
+//   const labels = tableData.map(d => d.name);
+
+
+//   const renderChart = (data: number[], labels: string[], type: 'bar' | 'line') => {
+//     if (data.some(val => !isFinite(val))) {
+//       data = data.map(val => (isFinite(val) ? val : 0));
+//     }
+    
+//     return type === 'bar' ? (
+//       <BarChart
+//         data={{ labels, datasets: [{ data }] }}
+//         width={screenWidth - 32}
+//         height={220}
+//         chartConfig={chartConfig('#4682B4')}
+//         style={styles.chart}
+//         {...platformHandlers}
+//       />
+//     ) : (
+//       <LineChart
+//         data={{ labels, datasets: [{ data }] }}
+//         width={screenWidth - 32}
+//         height={220}
+//         chartConfig={chartConfig('#FF6347')}
+//         style={styles.chart}
+//         {...platformHandlers}
+//       />
+//     );
+//   };
+
+
+//   /**
+//    * 📄 Export Report to PDF
+//    */
+//   const exportReport = async () => {
+//     const barUri = await barChartRef.current.capture();
+//     const lineUri = await lineChartRef.current.capture();
+
+//     const html = `
+//       <html>
+//         <body>
+//           <h1>Dashboard Report</h1>
+//           <h2>Total Income: £${totalIncome.toFixed(2)}</h2>
+//           <h2>Total Stock Available: ${totalStock}</h2>
+//           <img src="${barUri}" style="width:100%; margin-bottom: 20px;" />
+//           <img src="${lineUri}" style="width:100%; margin-bottom: 20px;" />
+//           <table border="1" cellspacing="0" cellpadding="4">
+//             <tr><th>Item</th><th>Stock</th><th>Sold</th><th>Income (£)</th></tr>
+//             ${tableData.map(row =>
+//               `<tr><td>${row.name}</td><td>${row.stock}</td><td>${row.sold}</td><td>£${row.income.toFixed(2)}</td></tr>`
+//             ).join('')}
+//           </table>
+//         </body>
+//       </html>
+//     `;
+//     const { uri } = await Print.printToFileAsync({ html });
+//     await FileSystem.moveAsync({ from: uri, to: `${FileSystem.documentDirectory}DashboardReport.pdf` });
+//   };
+
+//   const showStartDatePicker = () => setShowStartPicker(true);
+//   const showEndDatePicker = () => setShowEndPicker(true);
+//   /**
+//    * 📌 Render
+//    */
+
+//   return (
+//     <ScreenWrapper>
+//       <ScrollView contentContainerStyle={{ padding: 16 }}>
+//         <Text style={styles.title}>📊 Dashboard Overview</Text>
+
+//        <Picker selectedValue={filter} onValueChange={(value) => setFilter(value)} style={styles.picker}>
+//           <Picker.Item label="All Time" value="all" />
+//           <Picker.Item label="Daily" value="daily" />
+//           <Picker.Item label="Weekly" value="weekly" />
+//           <Picker.Item label="Monthly" value="monthly" />
+//           <Picker.Item label="Custom Range" value="custom" />
+//         </Picker>
+
+//         {filter === 'custom' && (
+//           <View style={styles.datePickerContainer}>
+//             <Button title="Select Start Date" onPress={showStartDatePicker} />
+//             <Button title="Select End Date" onPress={showEndDatePicker} />
+
+//             {showStartPicker && (
+//               <DateTimePicker
+//                 value={startDate}
+//                 mode="date"
+//                 display="default"
+//                 onChange={(event, date) => {
+//                   setShowStartPicker(false);
+//                   if (date) setStartDate(date);
+//                 }}
+//               />
+//             )}
+
+//             {showEndPicker && (
+//               <DateTimePicker
+//                 value={endDate}
+//                 mode="date"
+//                 display="default"
+//                 onChange={(event, date) => {
+//                   setShowEndPicker(false);
+//                   if (date) setEndDate(date);
+//                 }}
+//               />
+//             )}
+//           </View>
+//         )}
+//         <View style={styles.table}>
+//           <View style={styles.tableHeader}>
+//             <Text style={styles.headerCell}>Item</Text>
+//             <Text style={styles.headerCell}>Stock</Text>
+//             <Text style={styles.headerCell}>Sold</Text>
+//             <Text style={styles.headerCell}>Income (£)</Text>
+//           </View>
+//           {tableData.map((row, index) => (
+//             <View key={index} style={[styles.tableRow, index % 2 === 0 ? styles.evenRow : styles.oddRow]}>
+//               <Text style={styles.cell}>{row.name}</Text>
+//               <Text style={styles.cell}>{row.stock}</Text>
+//               <Text style={styles.cell}>{row.sold}</Text>
+//               <Text style={styles.cell}>£{row.income.toFixed(2)}</Text>
+//             </View>
+//           ))}
+//         </View>
+
+//         <ViewShot ref={barChartRef} options={{ format: "jpg", quality: 0.9 }}>
+//           <BarChart
+//             data={{ labels, datasets: [{ data: safeData }] }}
+//             width={screenWidth - 32}
+//             height={220}
+//             chartConfig={chartConfig('#4682B4')}
+//             style={styles.chart} yAxisLabel={''} yAxisSuffix={''}  />
+//         </ViewShot>
+//         <ViewShot ref={lineChartRef} options={{ format: "jpg", quality: 0.9 }}>
+//           <LineChart
+//           data={{ labels, datasets: [{ data: safeIncome }] }}
+//           width={screenWidth - 32}
+//           height={220}
+//           chartConfig={chartConfig('#FF6347')}
+//           style={styles.chart}
+//           />
+//         </ViewShot>
+
+//         <Button title="Export Report" onPress={exportReport} />
+//       </ScrollView>
+//     </ScreenWrapper>
+//   );
+// };
+// const styles = StyleSheet.create({
+//   title: {
+//     fontSize: 22,
+//     fontWeight: 'bold',
+//     marginVertical: 10,
+//     textAlign: 'center',
+//   },
+//   chart: {
+//     marginVertical: 10,
+//     borderRadius: 8,
+//   },
+//   picker: {
+//     marginVertical: 10,
+//     backgroundColor: '#f0f0f0',
+//   },
+//   tableHeader: { fontWeight: 'bold', marginBottom: 5 },
+//   dateRange: { fontSize: 14, textAlign: 'center', marginBottom: 10 },
+//   table: { marginTop: 10 },
+//   headerCell: { flex: 1, color: '#fff', fontWeight: 'bold', textAlign: 'center' },
+//   tableRow: { flexDirection: 'row', padding: 5 },
+//   evenRow: { backgroundColor: '#f9f9f9' },
+//   oddRow: { backgroundColor: '#eaeaea' },
+//   cell: { flex: 1, textAlign: 'center' },
+//   datePickerContainer: { flexDirection: 'row', justifyContent: 'space-around', marginVertical: 10 },
+  
+// });
+
+// export default Dashboard
