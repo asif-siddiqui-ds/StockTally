@@ -1,5 +1,41 @@
 # Welcome to your Expo app 👋
 
+# 📦 StockTally
+
+**StockTally** is a cross-platform inventory and sales management app built with **React Native + Expo Router**, integrated with **Appwrite** (authentication & cloud storage) and **RevenueCat** (subscriptions).  
+It runs seamlessly on iOS, Android, and Web.
+
+---
+
+## 🚀 Features
+- 🔐 User authentication (Appwrite)
+- 📦 Stock & sales management
+- 💰 Income dashboard with charts
+- 🧾 PDF invoice and report export
+- 🧩 Pro subscription with free trial (RevenueCat)
+- ☁️ Per-user cloud data separation
+
+---
+
+## 🛠️ Tech Stack
+| Layer | Technology |
+|-------|-------------|
+| Frontend | React Native, Expo Router, TypeScript |
+| Backend | Appwrite Cloud |
+| Payments | RevenueCat SDK |
+| Charts | react-native-chart-kit |
+| Storage | AsyncStorage (guest) + Appwrite (user) |
+| Build | EAS Build & Submit (TestFlight / Play Store) |
+
+---
+
+## 🧑‍💻 Setup Guide
+
+1. **Clone the repo**
+   ```bash
+   git clone https://github.com/<your-username>/stocktally.git
+   cd stocktally
+
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
 ## Get started
@@ -34,6 +70,46 @@ npm run reset-project
 ```
 
 This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+
+
+🧱 Version Control
+Follow the Conventional Commits style:
+feat: – new feature
+fix: – bug fix
+chore: – minor/non-code change
+
+Example:
+git add .
+git commit -m "feat(invoice): auto-generate invoice numbers"
+git push
+Tag releases:
+npm version minor -m "chore(release): %s"
+git push && git push --tags
+
+📱 Build for Release
+iOS
+eas build -p ios --profile production
+eas submit -p ios
+Android
+eas build -p android --profile production
+eas submit -p android
+
+🏁 Roadmap
+ Dark mode
+ Category-wise analytics
+ Cloud backups
+ Multi-device sync
+
+🧑‍🤝‍🧑 Author
+Asif Siddiqui
+💼 [LinkedIn](https://www.linkedin.com/in/asif-siddiqui-ds/)
+📧 asifsiddiqui@dataexpert.co.site
+📝 License
+
+
+---
+
+
 
 ## Learn more
 
