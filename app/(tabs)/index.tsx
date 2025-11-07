@@ -527,6 +527,7 @@ import { router } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Animated, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+
 const HomeScreen: React.FC = () => {
   const { user, logout } = useAuth();
   const [isProUser, setIsProUser] = useState(false);

@@ -1724,46 +1724,144 @@ export async function updateStockQuantity(
 /* -------------------------------------------------------------------------- */
 /*                                 SALE ITEMS                                */
 /* -------------------------------------------------------------------------- */
+
+export const normalizeDate = (value: string | Date): string => {
+  try {
+    if (!value) return new Date().toLocaleDateString();
+
+    // 🧠 Handle already localized format (e.g. "29/10/2025")
+    if (typeof value === "string" && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(value)) {
+      return value; // ✅ already in correct format
+    }
+
+    // 🧠 Handle ISO or other date formats
+    const parsed = new Date(value);
+    if (!isNaN(parsed.getTime())) {
+      return parsed.toLocaleDateString();
+    }
+
+    // 🧠 Handle fallback parsing for UK-style strings manually
+    const parts = typeof value === "string" ? value.split("/") : [];
+    if (parts.length === 3) {
+      const [day, month, year] = parts.map((p) => parseInt(p, 10));
+      const parsedDate = new Date(year, month - 1, day);
+      if (!isNaN(parsedDate.getTime())) {
+        return parsedDate.toLocaleDateString();
+      }
+    }
+
+    return new Date().toLocaleDateString(); // last fallback
+  } catch {
+    return new Date().toLocaleDateString();
+  }
+};
+
+// storage.ts
+export const normalizeDateStrict = (value: string | Date): string => {
+  try {
+    if (!value) return ""; // don't inject "today" anymore
+
+    // already UK dd/mm/yyyy
+    if (typeof value === "string" && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(value)) {
+      return value;
+    }
+
+    // parse ISO or other formats
+    const parsed = new Date(value as any);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toLocaleDateString();
+    }
+
+    // try manual dd/mm/yyyy reparse
+    if (typeof value === "string") {
+      const m = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (m) {
+        const [, d, mth, y] = m;
+        const dt = new Date(Number(y), Number(mth) - 1, Number(d));
+        if (!Number.isNaN(dt.getTime())) return dt.toLocaleDateString();
+      }
+    }
+
+    // 🚫 do not replace with today — return original as-is
+    return String(value);
+  } catch {
+    return String(value);
+  }
+};
+
+
 export async function getSaleItems(): Promise<SaleItem[]> {
   return await getLocal<SaleItem>("sales");
+  
 }
 
 export async function getSaleItem(id: string): Promise<SaleItem | null> {
     const all = await getLocal<SaleItem>("sales");
-    return all.find((s) => s.id === id) ?? null;
+  return all.find((s) => s.id === id) ?? null;
 }
+// 🆕 Save a new sale item (no date normalization)
 export async function saveSaleItem(
   item: Omit<SaleItem, "id" | "userId" | "date">
 ): Promise<SaleItem> {
   const userId = (await getCachedUserId()) || "guest";
   const all = await getSaleItems();
+
   const newItem: SaleItem = {
     ...item,
     id: Date.now().toString(),
+    // Use current ISO date only for brand-new entries
     date: new Date().toISOString(),
     userId,
   };
+
   all.push(newItem);
   await setLocal("sales", all);
   return newItem;
 }
 
+// ✏️ Update an existing sale item (no normalization)
 export async function updateSaleItem(
   id: string,
   updates: Partial<SaleItem>
 ): Promise<SaleItem | null> {
   const all = await getSaleItems();
-  const i = all.findIndex((s) => s.id === id);
-  if (i === -1) return null;
-  all[i] = { ...all[i], ...updates };
+  const index = all.findIndex((s) => s.id === id);
+  if (index === -1) return null;
+
+  const updatedItem: SaleItem = {
+    ...all[index],
+    ...updates,
+    // Preserve existing date unless caller explicitly passes a new one
+    date: updates.date ?? all[index].date,
+  };
+
+  all[index] = updatedItem;
   await setLocal("sales", all);
-  return all[i];
+  return updatedItem;
 }
 
 export async function deleteSaleItem(id: string): Promise<void> {
   const all = await getSaleItems();
   await setLocal("sales", all.filter((s) => s.id !== id));
 }
+
+// ✅ Overwrite all sale records (used for delete/update)
+export async function saveAllSales(sales: any[]) {
+  try {
+    // 🧹 Normalize dates before saving
+    const cleanedSales = sales.map((s) => ({
+      ...s,
+      date: new Date().toISOString(),
+    }));
+
+    await AsyncStorage.setItem("sales", JSON.stringify(cleanedSales));
+    console.log("✅ Saved sales with normalized dates:", cleanedSales.length);
+  } catch (err) {
+    console.error("❌ Error saving all sales:", err);
+  }
+}
+
+
 
 /* -------------------------------------------------------------------------- */
 /*                                RETURN ITEMS                               */

@@ -146,14 +146,14 @@ export async function uploadUnsynced(
           try {
             const fileInfo = await FileSystem.getInfoAsync(logoLocal);
             if (fileInfo.exists) {
-              // const fileBlob = await fetch(logoLocal).then((r) => r.blob());
-              // const uploadRes = await storage.createFile(
-              //   LOGO_BUCKET_ID,
-              //   ID.unique(),
-              //   fileBlob as any
-              // );
-              // logoCloud = uploadRes.$id;
-              // console.log("✅ Logo uploaded:", logoCloud);
+              const fileBlob = await fetch(logoLocal).then((r) => r.blob());
+              const uploadRes = await storage.createFile(
+                LOGO_BUCKET_ID,
+                ID.unique(),
+                fileBlob as any
+              );
+              logoCloud = uploadRes.$id;
+              console.log("✅ Logo uploaded:", logoCloud);
               console.log("⬆️ Uploading logo via FileSystem.uploadAsync:", logoLocal);
 
               // Generate a unique file ID (Appwrite expects file param name "file")
@@ -186,6 +186,23 @@ export async function uploadUnsynced(
           }
         }
 
+        // 🧩 Ensure any date fields are valid ISO strings before upload
+        if (data.date && typeof data.date === "string") {
+          const d = new Date(data.date);
+          if (isNaN(d.getTime())) {
+            // fallback if it's localized or unparsable
+            const parts = data.date.split("/");
+            if (parts.length === 3) {
+              const [day, month, year] = parts.map(Number);
+              data.date = new Date(year, month - 1, day).toISOString();
+            } else {
+              data.date = new Date().toISOString(); // fallback to now
+            }
+          } else {
+            data.date = d.toISOString();
+          }
+        }
+
         // ✅ Create or update document on Appwrite (without logoLocal)
         const res = await database.createDocument(DATABASE_ID, coll, ID.unique(), {
           ...data,
@@ -203,6 +220,7 @@ export async function uploadUnsynced(
           logoCloud,
           synced: true,
           syncedAt: nowISO(),
+          date: item.date, // ✅ preserve original sale/record date
         });
       } else {
         updatedArr.push(item);

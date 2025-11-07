@@ -2,7 +2,7 @@
   "expo": {
     "name": "StockTally",
     "slug": "StockTally",
-    "version": "2.0.2",
+    "version": "2.0.4",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "stocktally",
@@ -13,6 +13,7 @@
       "supportsTablet": true,
       "buildNumber": "12",
       "bundleIdentifier": "com.asif.Stocktally",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "NSPhotoLibraryAddUsageDescription": "Allow this app to save files to your photo library",
         "UIBackgroundModes": [
@@ -28,8 +29,12 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.asif.Stocktally",
-      "versionCode": 26,
-      "permissions": []
+      "versionCode": 27,
+      "permissions": [
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "CAMERA"
+      ]
     },
     "runtimeVersion": {
       "policy": "appVersion"
@@ -55,12 +60,15 @@
         }
       ],
       "expo-sqlite",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-image-picker"
     ],
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
+      "appwriteEndpoint": "https://fra.cloud.appwrite.io/v1",
+      "appwriteProjectId": "68215c9f00161f204345",
       "excludeModules": [
         "expo-sharing"
       ],

@@ -79,6 +79,7 @@ const screenTitles: Record<string, string> = {
   returnsList: "Return List",
   "screens/sales/[id]": "Edit Sale",
   "screens/sales/record": "Record Sale",
+  "screens/sales/viewSaleScreen": "View Sale",
   "screens/stock/[id]": "Edit Stock",
   "screens/stock/add": "Add Stock",
   "screens/returns/[id]": "Edit Return",

@@ -854,9 +854,8 @@ import {
   View,
 } from "react-native";
 import Purchases, {
-  CustomerInfo,
   PURCHASES_ERROR_CODE,
-  PurchasesPackage,
+  PurchasesPackage
 } from "react-native-purchases";
 
 const PaywallScreen: React.FC = () => {
@@ -936,6 +935,7 @@ const PaywallScreen: React.FC = () => {
       const info = await Purchases.restorePurchases();
       await updateEntitlements(info);
       console.log("🔄 Restored purchases & updated entitlements");
+      router.replace("/(tabs)");
     } catch (err) {
       console.warn("⚠️ Restore failed:", err);
     } finally {
