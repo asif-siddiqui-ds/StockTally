@@ -44,6 +44,18 @@ const CloudBackupScreen = () => {
   const mutedText = isDark ? "#9CA3AF" : "#6B7280";
 
   // 🚦 Navigation guard
+  // useEffect(() => {
+  //   if (loading) return;
+  //   if (!isProUser) {
+  //     router.replace("/paywall");
+  //     return;
+  //   }
+  //   if (!user || user === null) {
+  //     router.replace("/(auth)/LoginScreen");
+  //     return;
+  //   }
+  // }, [isProUser, loading, user]);
+
   useEffect(() => {
     if (loading) return;
     if (!isProUser) {
@@ -54,7 +66,7 @@ const CloudBackupScreen = () => {
       router.replace("/(auth)/LoginScreen");
       return;
     }
-  }, [isProUser, loading, user]);
+  }, [loading, user]);
 
   // Load saved settings
   useEffect(() => {
@@ -197,6 +209,11 @@ const CloudBackupScreen = () => {
           colors={['#4CAF50', '#2E7D32']}
           onPress={() => router.push("/(tabs)")}
         />
+        {/* <GradientButton
+          title="Connect Shopify"
+          colors={['#4CAF50', '#2E7D32']}
+          onPress={() => router.push("./ConnectShopifyScreen")}
+        /> */}
       </View>
 
       {!isProUser && (

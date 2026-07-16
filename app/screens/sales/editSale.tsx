@@ -1116,427 +1116,1207 @@
 // });
 
 // export default EditSaleRecord;
-import ScreenWrapper from "@/components/ScreenWrapper";
-import { useAuth } from "@/context/AuthContext";
+// import ScreenWrapper from "@/components/ScreenWrapper";
+// import { useAuth } from "@/context/AuthContext";
+// import {
+//   getSaleItems,
+//   getStockItem,
+//   getStockItems,
+//   saveAllSales,
+//   updateStockQuantity
+// } from "@/lib/storage";
+// import { LinearGradient } from "expo-linear-gradient";
+// import { useLocalSearchParams, useRouter } from "expo-router";
+// import React, { useEffect, useState } from "react";
+// import {
+//   Alert,
+//   SafeAreaView,
+//   ScrollView,
+//   StyleSheet,
+//   Text,
+//   TextInput,
+//   TouchableOpacity,
+//   View
+// } from "react-native";
+// import { Dropdown } from "react-native-element-dropdown";
+
+// const EditSaleScreen = () => {
+//   const router = useRouter();
+//   const { user } = useAuth();
+//   const { buyerName: paramBuyerName, date } = useLocalSearchParams();
+//   const userId = user?.$id || "guest";
+
+//   const [buyerName, setBuyerName] = useState(paramBuyerName || "");
+//   const [saleItems, setSaleItems] = useState<any[]>([]);
+//   const [selectedItemId, setSelectedItemId] = useState<string>("");
+//   const [quantity, setQuantity] = useState<string>("");
+//   const [price, setPrice] = useState<string>("");
+//   const [allSales, setAllSales] = useState<any[]>([]);
+//   const [stockList, setStockList] = useState<any[]>([]);
+//   const [selectedStockItemId, setSelectedStockItemId] = useState<string>("");
+
+//   // 🧩 Helper for day-level date comparison
+//   const sameSaleDay = (a: any, b: any): boolean => {
+//     try {
+//       const d1 = new Date(a).toLocaleDateString();
+//       const d2 = new Date(b).toLocaleDateString();
+//       return d1 === d2;
+//     } catch {
+//       return false;
+//     }
+//   };
+
+//   // 🧩 Load sale + stock data
+//   useEffect(() => {
+//     const loadData = async () => {
+//       const all = await getSaleItems();
+//       const stocks = await getStockItems();
+//       setStockList(stocks);
+//       setAllSales(all);
+
+//       // ✅ Load all items from this buyer on the same sale day
+//       const current = all.filter(
+//         (s) => s.buyerName === paramBuyerName && sameSaleDay(s.date, date)
+//       );
+//       setSaleItems(current);
+//     };
+//     loadData();
+//   }, []);
+
+//   // 🔁 Selecting sale item
+//   const handleSelectItem = (id: string) => {
+//     setSelectedItemId(id);
+//     if (id === "new") {
+//       setQuantity("");
+//       setPrice("");
+//       setSelectedStockItemId("");
+//     } else {
+//       const selected = saleItems.find((i) => i.stockItemId === id);
+//       if (selected) {
+//         setQuantity(selected.quantity.toString());
+//         setPrice(selected.price.toString());
+//       }
+//     }
+//   };
+
+//   // 💾 Save updates (buyer + items)
+//   const handleSave = async () => {
+//     try {
+//       if (!buyerName.trim()) {
+//         Alert.alert("Error", "Buyer name cannot be empty.");
+//         return;
+//       }
+
+//       // ⚠️ Only update buyer name if no item selected
+//       if (!selectedItemId) {
+//         const updatedBuyerSales = allSales.map((s) =>
+//           s.buyerName === paramBuyerName && sameSaleDay(s.date, date)
+//             ? { ...s, buyerName }
+//             : s
+//         );
+//         await saveAllSales(updatedBuyerSales);
+//         Alert.alert("Updated", "Buyer name updated successfully.", [
+//           { text: "OK", onPress: () => router.back() },
+//         ]);
+//         return;
+//       }
+
+//       if (!quantity || !price) {
+//         Alert.alert("Error", "Please enter quantity and price.");
+//         return;
+//       }
+
+//       const newQty = Number(quantity);
+//       const newPrice = Number(price);
+//       let updatedSales = [...allSales];
+
+//       // ✅ Update buyer name across this sale
+//       updatedSales = updatedSales.map((s) =>
+//         s.buyerName === paramBuyerName && sameSaleDay(s.date, date)
+//           ? { ...s, buyerName }
+//           : s
+//       );
+
+//       // ✏️ Editing existing item
+//       if (selectedItemId !== "new") {
+//         const itemToUpdate = saleItems.find(
+//           (i) => i.stockItemId === selectedItemId
+//         );
+//         if (itemToUpdate) {
+//           const oldQty = itemToUpdate.quantity;
+//           const stockItem = await getStockItem(selectedItemId);
+//           if (!stockItem) {
+//             Alert.alert("Error", "Stock item not found.");
+//             return;
+//           }
+          
+//           const stockAdjustment = oldQty - newQty;
+//           const newStockQty = stockItem.quantity + stockAdjustment;
+//           if (newStockQty < 0) {
+//             Alert.alert(
+//               "Insufficient Stock",
+//               `Not enough stock for "${stockItem.name}".`
+//             );
+//             return;
+//           }
+
+//           updatedSales = updatedSales.map((s) =>
+//             s.stockItemId === selectedItemId &&
+//             s.buyerName === buyerName &&
+//             sameSaleDay(s.date, date)
+//               ? { ...s, quantity: newQty, price: newPrice }
+//               : s
+//           );
+
+//           await updateStockQuantity(selectedItemId, newStockQty);
+//         }
+//       } else {
+
+//         // 🆕 Add new item
+//         const stockItem = await getStockItem(selectedStockItemId);
+//         if (!stockItem) {
+//           Alert.alert("Error", "Selected stock item not found.");
+//           return;
+//         }
+
+//         // ⚙️ Check stock availability
+//         if (stockItem.quantity < newQty) {
+//           Alert.alert(
+//             "Insufficient Stock",
+//             `Only ${stockItem.quantity} units available for "${stockItem.name}".`
+//           );
+//           return;
+//         }
+
+        
+//         const newItem = {
+//             id: Date.now().toString(),
+//             stockItemId: selectedStockItemId,
+//             name: stockItem.name,
+//             quantity: newQty,
+//             price: newPrice,
+//             buyerName,
+//             date: new Date().toString(),
+//             userId,
+//             paid: false,
+//             syncedAt: "",
+//             synced: false,
+//         };
+//         updatedSales.push(newItem);
+
+//         await updateStockQuantity(
+//           selectedStockItemId,
+//           stockItem.quantity - newQty
+//         );
+
+//         Alert.alert("Added", `Item "${stockItem.name}" added to sale.`);
+//       }
+
+//       // 💾 Save all
+//       updatedSales = updatedSales.map((s) => ({
+//         ...s,
+//         date: s.date,
+//       }));
+
+//       await saveAllSales(updatedSales);
+//       Alert.alert("Success", "Sale updated successfully.", [
+//         { text: "OK", onPress: () => router.back() },
+//       ]);
+//     } catch (err) {
+//       console.error("❌ Error saving sale:", err);
+//       Alert.alert("Error", "Failed to update sale. Please try again.");
+//     }
+//   };
+
+// return (
+//   <ScreenWrapper>
+//     <LinearGradient
+//       colors={["#0d1b2a", "#1b263b", "#415a77"]}
+//       start={{ x: 0, y: 0 }}
+//       end={{ x: 1, y: 1 }}
+//       style={styles.gradient}
+//     >
+//       <SafeAreaView style={{ flex: 1 }}>
+//         <ScrollView contentContainerStyle={styles.scroll}>
+//           {/* 📍 Title Outside Form */}
+//           {/* 🧊 Frosted Glass Form */}
+//           <View style={styles.formCard}>
+//             {/* Buyer */}
+//             <Text style={styles.label}>Buyer Name</Text>
+//             <TextInput
+//               style={styles.input}
+//               placeholder="Enter buyer name"
+//               placeholderTextColor="#bbb"
+//               value={buyerName}
+//               onChangeText={setBuyerName}
+//             />
+
+//             {/* Existing Sale Item */}
+//             <Text style={styles.label}>Select Item</Text>
+//             <Dropdown
+//               data={[
+//                 ...saleItems.map((i) => ({
+//                   label: i.name,
+//                   value: i.stockItemId,
+//                 })),
+//                 { label: "+ Add New Item", value: "new" },
+//               ]}
+//               labelField="label"
+//               valueField="value"
+//               value={selectedItemId}
+//               onChange={(item) => handleSelectItem(item.value)}
+//               placeholder="Select item"
+//               style={styles.dropdown}
+//               placeholderStyle={styles.dropdownPlaceholder}
+//               selectedTextStyle={styles.dropdownText}
+//             />
+
+//             {/* New Item Stock Dropdown */}
+//             {selectedItemId === "new" && (
+//               <>
+//                 <Text style={styles.label}>Select Stock Item</Text>
+//                 <Dropdown
+//                   data={stockList
+//                     .filter((s) => !saleItems.some((item) => item.stockItemId === s.id))
+//                     .map((s) => ({
+//                       label: `${s.name} (Available: ${s.quantity})`,
+//                       value: s.id,
+//                     }))}
+//                   labelField="label"
+//                   valueField="value"
+//                   value={selectedStockItemId}
+//                   onChange={(item) => setSelectedStockItemId(item.value)}
+//                   placeholder="Choose from stock"
+//                   style={styles.dropdown}
+//                   placeholderStyle={styles.dropdownPlaceholder}
+//                   selectedTextStyle={styles.dropdownText}
+//                 />
+//               </>
+//             )}
+
+//             {/* Quantity / Price */}
+//             <Text style={styles.label}>Quantity</Text>
+//             <TextInput
+//               style={styles.input}
+//               keyboardType="numeric"
+//               placeholder="Enter quantity"
+//               placeholderTextColor="#bbb"
+//               value={quantity}
+//               onChangeText={setQuantity}
+//             />
+
+//             <Text style={styles.label}>Price (£)</Text>
+//             <TextInput
+//               style={styles.input}
+//               keyboardType="numeric"
+//               placeholder="Enter price"
+//               placeholderTextColor="#bbb"
+//               value={price}
+//               onChangeText={setPrice}
+//             />
+
+//             {/* Buttons */}
+//             <View style={styles.buttonGroup}>
+//               <TouchableOpacity style={styles.saveButton} onPress={handleSave} activeOpacity={0.9}>
+//                 <Text style={styles.saveText}>💾 Save Changes</Text>
+//               </TouchableOpacity>
+
+//               <TouchableOpacity
+//                 style={styles.cancelButton}
+//                 onPress={() => router.back()}
+//                 activeOpacity={0.9}
+//               >
+//                 <Text style={styles.cancelText}>✖ Cancel</Text>
+//               </TouchableOpacity>
+//             </View>
+//           </View>
+//         </ScrollView>
+//       </SafeAreaView>
+//     </LinearGradient>
+//   </ScreenWrapper>
+// );
+// };
+
+// // 💅 Styles
+// const styles = StyleSheet.create({
+//   gradient: { flex: 1 },
+//   scroll: {
+//     flexGrow: 1,
+//     paddingVertical: 30,
+//     paddingHorizontal: 20,
+//   },
+//   title: {
+//     color: "#fff",
+//     fontSize: 30,
+//     fontWeight: "800",
+//     marginBottom: 20,
+//     textAlign: "center",
+//     letterSpacing: 0.5,
+//   },
+//   formCard: {
+//     backgroundColor: "rgba(255, 255, 255, 0.08)",
+//     borderRadius: 24,
+//     padding: 20,
+//     shadowColor: "#000",
+//     shadowOpacity: 0.35,
+//     shadowRadius: 15,
+//     shadowOffset: { width: 0, height: 6 },
+//     borderWidth: 1,
+//     borderColor: "rgba(255, 255, 255, 0.15)",
+//   },
+//   label: {
+//     color: "#dbeafe",
+//     fontSize: 16,
+//     marginBottom: 8,
+//     marginTop: 18,
+//     fontWeight: "600",
+//   },
+//   input: {
+//     backgroundColor: "rgba(255,255,255,0.18)",
+//     borderRadius: 14,
+//     paddingVertical: 14,
+//     paddingHorizontal: 16,
+//     color: "#fff",
+//     fontSize: 17,
+//     fontWeight: "500",
+//     borderWidth: 1,
+//     borderColor: "rgba(255,255,255,0.15)",
+//   },
+//   dropdown: {
+//     backgroundColor: "rgba(255,255,255,0.18)",
+//     borderRadius: 14,
+//     paddingHorizontal: 14,
+//     height: 56,
+//     borderWidth: 1,
+//     borderColor: "rgba(255,255,255,0.15)",
+//   },
+//   dropdownPlaceholder: {
+//     color: "#bbb",
+//     fontSize: 15,
+//     fontWeight: "500",
+//   },
+//   dropdownText: {
+//     color: "#fff",
+//     fontSize: 16,
+//     fontWeight: "600",
+//   },
+//   buttonGroup: {
+//     marginTop: 40,
+//     gap: 14,
+//   },
+//   saveButton: {
+//     backgroundColor: "rgba(34,197,94,0.92)",
+//     borderRadius: 14,
+//     paddingVertical: 16,
+//     alignItems: "center",
+//     shadowColor: "#22c55e",
+//     shadowOpacity: 0.4,
+//     shadowOffset: { width: 0, height: 5 },
+//     shadowRadius: 8,
+//     elevation: 6,
+//   },
+//   saveText: {
+//     color: "#fff",
+//     fontWeight: "700",
+//     fontSize: 18,
+//     letterSpacing: 0.4,
+//   },
+//   cancelButton: {
+//     backgroundColor: "rgba(239,68,68,0.9)",
+//     borderRadius: 14,
+//     paddingVertical: 16,
+//     alignItems: "center",
+//     shadowColor: "#ef4444",
+//     shadowOpacity: 0.4,
+//     shadowOffset: { width: 0, height: 5 },
+//     shadowRadius: 8,
+//     elevation: 6,
+//   },
+//   cancelText: {
+//     color: "#fff",
+//     fontWeight: "700",
+//     fontSize: 18,
+//     letterSpacing: 0.4,
+//   },
+// });
+// export default EditSaleScreen;
+
+import ScreenWrapper from '@/components/ScreenWrapper';
 import {
   getSaleItems,
-  getStockItem,
   getStockItems,
   saveAllSales,
-  updateStockQuantity
-} from "@/lib/storage";
-import { LinearGradient } from "expo-linear-gradient";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+  saveStockMovement,
+  updateStockQuantity,
+} from '@/lib/storage';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
-  SafeAreaView,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  useColorScheme,
   View
-} from "react-native";
-import { Dropdown } from "react-native-element-dropdown";
+} from 'react-native';
+import { Dropdown } from 'react-native-element-dropdown';
 
 const EditSaleScreen = () => {
   const router = useRouter();
-  const { user } = useAuth();
-  const { buyerName: paramBuyerName, date } = useLocalSearchParams();
-  const userId = user?.$id || "guest";
+  const { salesId } = useLocalSearchParams<{ salesId: string }>();
 
-  const [buyerName, setBuyerName] = useState(paramBuyerName || "");
+  const [stockItems, setStockItems] = useState<any[]>([]);
   const [saleItems, setSaleItems] = useState<any[]>([]);
-  const [selectedItemId, setSelectedItemId] = useState<string>("");
-  const [quantity, setQuantity] = useState<string>("");
-  const [price, setPrice] = useState<string>("");
-  const [allSales, setAllSales] = useState<any[]>([]);
-  const [stockList, setStockList] = useState<any[]>([]);
-  const [selectedStockItemId, setSelectedStockItemId] = useState<string>("");
+  const [originalSale, setOriginalSale] = useState<any[]>([]);
+  const [buyerName, setBuyerName] = useState('');
+  const [paidStatus, setPaidStatus] = useState(false);
+  const [date, setDate] = useState('');
+  const colorScheme = useColorScheme();
+  const textColor = colorScheme === "dark" ? "#fff" : "#000";
+  const bgColor = colorScheme === "dark" ? "#121212" : "#f5f5f5";
+  const cardColor = colorScheme === "dark" ? "#1e1e1e" : "#fff";
+  const inputBg = colorScheme === "dark" ? "#1c1c1c" : "#fff";
 
-  // 🧩 Helper for day-level date comparison
-  const sameSaleDay = (a: any, b: any): boolean => {
-    try {
-      const d1 = new Date(a).toLocaleDateString();
-      const d2 = new Date(b).toLocaleDateString();
-      return d1 === d2;
-    } catch {
-      return false;
-    }
-  };
+  // 🔹 New item form
+  const [selectedStockId, setSelectedStockId] = useState('');
+  const [quantity, setQuantity] = useState<number | ''>('');
+  const [price, setPrice] = useState<number | ''>('');
 
-  // 🧩 Load sale + stock data
   useEffect(() => {
     const loadData = async () => {
-      const all = await getSaleItems();
-      const stocks = await getStockItems();
-      setStockList(stocks);
-      setAllSales(all);
+      const allSales = await getSaleItems();
+      const stockList = await getStockItems();
+      setStockItems(stockList);
 
-      // ✅ Load all items from this buyer on the same sale day
-      const current = all.filter(
-        (s) => s.buyerName === paramBuyerName && sameSaleDay(s.date, date)
-      );
-      setSaleItems(current);
+      const thisSale = allSales.filter((s) => s.salesId === salesId);
+      if (thisSale.length === 0) {
+        Alert.alert('Error', 'Sale not found.');
+        router.back();
+        return;
+      }
+
+      setSaleItems(thisSale);
+      setOriginalSale(thisSale); // keep copy for comparison
+      setBuyerName(thisSale[0].buyerName);
+      setPaidStatus(thisSale[0].paid ?? false);
+      setDate(thisSale[0].date);
     };
     loadData();
-  }, []);
+  }, [salesId]);
 
-  // 🔁 Selecting sale item
-  const handleSelectItem = (id: string) => {
-    setSelectedItemId(id);
-    if (id === "new") {
-      setQuantity("");
-      setPrice("");
-      setSelectedStockItemId("");
-    } else {
-      const selected = saleItems.find((i) => i.stockItemId === id);
-      if (selected) {
-        setQuantity(selected.quantity.toString());
-        setPrice(selected.price.toString());
-      }
+  // 🧩 Add another item
+  const handleAddItem = () => {
+    if (!selectedStockId || quantity === '' || price === '') {
+      Alert.alert('Error', 'Please select an item and enter quantity and price.');
+      return;
     }
+
+    const selectedStock = stockItems.find((s) => s.id === selectedStockId);
+    if (!selectedStock) {
+      Alert.alert('Error', 'Selected stock item not found.');
+      return;
+    }
+    if (quantity > selectedStock.quantity) {
+      Alert.alert('Error', 'Quantity exceeds available stock.');
+      return;
+    }
+
+    const newItem = {
+      salesId,
+      stockItemId: selectedStockId,
+      name: selectedStock.name,
+      quantity,
+      price,
+      buyerName,
+      paid: paidStatus,
+      date,
+    };
+
+    setSaleItems((prev) => [...prev, newItem]);
+    setSelectedStockId('');
+    setQuantity('');
+    setPrice('');
+
+    Alert.alert('✅ Added', `${selectedStock.name} added to sale.`);
   };
 
-  // 💾 Save updates (buyer + items)
-  const handleSave = async () => {
+  // 💾 Save updates (atomic + smart stock adjustment)
+  // const handleSaveChanges = async () => {
+  //   try {
+  //     if (!buyerName) {
+  //       Alert.alert('Error', 'Please enter buyer name.');
+  //       return;
+  //     }
+  //     if (saleItems.length === 0) {
+  //       Alert.alert('Error', 'Sale must include at least one item.');
+  //       return;
+  //     }
+
+  //     // 🧮 Load all existing sales
+  //     const allSales = await getSaleItems();
+  //     const remainingSales = allSales.filter((s) => s.salesId !== salesId);
+
+  //     // 🆕 Prepare updated sale items
+  //     const updatedSaleItems = saleItems.map((item) => ({
+  //       ...item,
+  //       salesId,
+  //       buyerName,
+  //       paid: paidStatus,
+  //       date,
+  //     }));
+
+  //     // 💾 Save all
+  //     await saveAllSales([...remainingSales, ...updatedSaleItems]);
+
+  //     // 🔧 Adjust stock based on delta
+  //     for (const updatedItem of updatedSaleItems) {
+  //       const stock = stockItems.find((s) => s.id === updatedItem.stockItemId);
+  //       const oldItem = originalSale.find(
+  //         (o) => o.stockItemId === updatedItem.stockItemId
+  //       );
+
+  //       if (stock) {
+  //         let delta = 0;
+
+  //         if (oldItem) {
+  //           // Existing item edited
+  //           delta = updatedItem.quantity - oldItem.quantity;
+  //         } else {
+  //           // New item added
+  //           delta = updatedItem.quantity;
+  //         }
+
+  //         const newStockQty = stock.quantity - delta;
+  //         await updateStockQuantity(updatedItem.stockItemId, newStockQty);
+  //       }
+  //     }
+
+  //     // 🗑️ Restore stock for removed items
+  //     for (const oldItem of originalSale) {
+  //       const stillExists = updatedSaleItems.find(
+  //         (i) => i.stockItemId === oldItem.stockItemId
+  //       );
+  //       if (!stillExists) {
+  //         const stock = stockItems.find((s) => s.id === oldItem.stockItemId);
+  //         if (stock) {
+  //           const restoredQty = stock.quantity + oldItem.quantity;
+  //           await updateStockQuantity(oldItem.stockItemId, restoredQty);
+  //         }
+  //       }
+  //     }
+
+  //     Alert.alert('✅ Success', 'Sale updated successfully.', [
+  //       {
+  //         text: 'OK',
+  //         onPress: () =>
+  //           router.replace({
+  //             pathname: '/screens/sales/viewSaleScreen',
+  //             params: { salesId },
+  //           }),
+  //       },
+  //     ]);
+  //   } catch (err) {
+  //     console.error('❌ Error saving sale:', err);
+  //     Alert.alert('Error', 'Failed to update sale.');
+  //   }
+  // };
+
+  // const handleSaveChanges = async () => {
+  //   try {
+  //     if (!buyerName) {
+  //       Alert.alert("Error", "Please enter buyer name.");
+  //       return;
+  //     }
+
+  //     if (saleItems.length === 0) {
+  //       Alert.alert("Error", "Sale must include at least one item.");
+  //       return;
+  //     }
+
+  //     const allSales = await getSaleItems();
+  //     const remainingSales = allSales.filter((s) => s.salesId !== salesId);
+
+  //     const updatedSaleItems = saleItems.map((item) => ({
+  //       ...item,
+  //       salesId,
+  //       buyerName,
+  //       paid: paidStatus,
+  //       date,
+  //       quantity: Number(item.quantity),
+  //       price: Number(item.price),
+  //       synced: false,
+  //       syncedAt: "",
+  //     }));
+
+  //     await saveAllSales([...remainingSales, ...updatedSaleItems]);
+
+  //     // 🔧 Adjust stock based on updated / added sale items
+  //     for (const updatedItem of updatedSaleItems) {
+  //       const stock = stockItems.find((s) => s.id === updatedItem.stockItemId);
+  //       const oldItem = originalSale.find(
+  //         (o) => o.stockItemId === updatedItem.stockItemId
+  //       );
+
+  //       if (stock) {
+  //         let delta = 0;
+
+  //         if (oldItem) {
+  //           delta = Number(updatedItem.quantity) - Number(oldItem.quantity);
+  //         } else {
+  //           delta = Number(updatedItem.quantity);
+  //         }
+
+  //         if (delta !== 0) {
+  //           const newStockQty = Number(stock.quantity) - delta;
+
+  //           await updateStockQuantity(updatedItem.stockItemId, newStockQty);
+
+  //           await saveStockMovement({
+  //             stockItemId: updatedItem.stockItemId,
+  //             itemName: updatedItem.name || stock.name,
+  //             type: delta > 0 ? "OUT" : "IN",
+  //             quantity: Math.abs(delta),
+  //             source: "QUICK_SALE",
+  //             sourceLabel:
+  //               delta > 0
+  //                 ? "Quick sale updated - extra stock sold"
+  //                 : "Quick sale updated - stock restored",
+  //             balanceAfter: newStockQty,
+  //             referenceId: salesId,
+  //             referenceType: "SALE",
+  //             note: `Sale updated for ${buyerName}`,
+  //           });
+  //         }
+  //       }
+  //     }
+
+  //     // 🗑️ Restore stock for removed sale items
+  //     for (const oldItem of originalSale) {
+  //       const stillExists = updatedSaleItems.find(
+  //         (i) => i.stockItemId === oldItem.stockItemId
+  //       );
+
+  //       if (!stillExists) {
+  //         const stock = stockItems.find((s) => s.id === oldItem.stockItemId);
+
+  //         if (stock) {
+  //           const restoredQty =
+  //             Number(stock.quantity) + Number(oldItem.quantity);
+
+  //           await updateStockQuantity(oldItem.stockItemId, restoredQty);
+
+  //           await saveStockMovement({
+  //             stockItemId: oldItem.stockItemId,
+  //             itemName: oldItem.name || stock.name,
+  //             type: "IN",
+  //             quantity: Number(oldItem.quantity),
+  //             source: "QUICK_SALE",
+  //             sourceLabel: "Quick sale item removed - stock restored",
+  //             balanceAfter: restoredQty,
+  //             referenceId: salesId,
+  //             referenceType: "SALE",
+  //             note: `Item removed from sale for ${buyerName}`,
+  //           });
+  //         }
+  //       }
+  //     }
+
+  //     Alert.alert("✅ Success", "Sale updated successfully.", [
+  //       {
+  //         text: "OK",
+  //         onPress: () =>
+  //           router.replace({
+  //             pathname: "/screens/sales/viewSaleScreen",
+  //             params: { salesId },
+  //           }),
+  //       },
+  //     ]);
+  //   } catch (err) {
+  //     console.error("❌ Error saving sale:", err);
+  //     Alert.alert("Error", "Failed to update sale.");
+  //   }
+  // };
+
+  const handleSaveChanges = async () => {
     try {
-      if (!buyerName.trim()) {
-        Alert.alert("Error", "Buyer name cannot be empty.");
+      if (!buyerName) {
+        Alert.alert("Error", "Please enter buyer name.");
         return;
       }
 
-      // ⚠️ Only update buyer name if no item selected
-      if (!selectedItemId) {
-        const updatedBuyerSales = allSales.map((s) =>
-          s.buyerName === paramBuyerName && sameSaleDay(s.date, date)
-            ? { ...s, buyerName }
-            : s
-        );
-        await saveAllSales(updatedBuyerSales);
-        Alert.alert("Updated", "Buyer name updated successfully.", [
-          { text: "OK", onPress: () => router.back() },
-        ]);
+      if (saleItems.length === 0) {
+        Alert.alert("Error", "Sale must include at least one item.");
         return;
       }
 
-      if (!quantity || !price) {
-        Alert.alert("Error", "Please enter quantity and price.");
-        return;
-      }
+      const allSales = await getSaleItems();
+      const remainingSales = allSales.filter((s) => s.salesId !== salesId);
 
-      const newQty = Number(quantity);
-      const newPrice = Number(price);
-      let updatedSales = [...allSales];
-
-      // ✅ Update buyer name across this sale
-      updatedSales = updatedSales.map((s) =>
-        s.buyerName === paramBuyerName && sameSaleDay(s.date, date)
-          ? { ...s, buyerName }
-          : s
-      );
-
-      // ✏️ Editing existing item
-      if (selectedItemId !== "new") {
-        const itemToUpdate = saleItems.find(
-          (i) => i.stockItemId === selectedItemId
-        );
-        if (itemToUpdate) {
-          const oldQty = itemToUpdate.quantity;
-          const stockItem = await getStockItem(selectedItemId);
-          if (!stockItem) {
-            Alert.alert("Error", "Stock item not found.");
-            return;
-          }
-          
-          const stockAdjustment = oldQty - newQty;
-          const newStockQty = stockItem.quantity + stockAdjustment;
-          if (newStockQty < 0) {
-            Alert.alert(
-              "Insufficient Stock",
-              `Not enough stock for "${stockItem.name}".`
-            );
-            return;
-          }
-
-          updatedSales = updatedSales.map((s) =>
-            s.stockItemId === selectedItemId &&
-            s.buyerName === buyerName &&
-            sameSaleDay(s.date, date)
-              ? { ...s, quantity: newQty, price: newPrice }
-              : s
-          );
-
-          await updateStockQuantity(selectedItemId, newStockQty);
-        }
-      } else {
-
-        // 🆕 Add new item
-        const stockItem = await getStockItem(selectedStockItemId);
-        if (!stockItem) {
-          Alert.alert("Error", "Selected stock item not found.");
-          return;
-        }
-
-        // ⚙️ Check stock availability
-        if (stockItem.quantity < newQty) {
-          Alert.alert(
-            "Insufficient Stock",
-            `Only ${stockItem.quantity} units available for "${stockItem.name}".`
-          );
-          return;
-        }
-
-        
-        const newItem = {
-            id: Date.now().toString(),
-            stockItemId: selectedStockItemId,
-            name: stockItem.name,
-            quantity: newQty,
-            price: newPrice,
-            buyerName,
-            date: new Date().toString(),
-            userId,
-            paid: false,
-            syncedAt: "",
-            synced: false,
-        };
-        updatedSales.push(newItem);
-
-        await updateStockQuantity(
-          selectedStockItemId,
-          stockItem.quantity - newQty
-        );
-
-        Alert.alert("Added", `Item "${stockItem.name}" added to sale.`);
-      }
-
-      // 💾 Save all
-      updatedSales = updatedSales.map((s) => ({
-        ...s,
-        date: s.date,
+      const updatedSaleItems = saleItems.map((item) => ({
+        ...item,
+        salesId,
+        buyerName,
+        paid: paidStatus,
+        date,
+        quantity: Number(item.quantity),
+        price: Number(item.price),
+        synced: false,
+        syncedAt: "",
       }));
 
-      await saveAllSales(updatedSales);
-      Alert.alert("Success", "Sale updated successfully.", [
-        { text: "OK", onPress: () => router.back() },
+      await saveAllSales([...remainingSales, ...updatedSaleItems]);
+
+      // 🔧 Adjust stock based on updated / added sale items
+      for (const updatedItem of updatedSaleItems) {
+        const stock = stockItems.find((s) => s.id === updatedItem.stockItemId);
+        const oldItem = originalSale.find(
+          (o) => o.stockItemId === updatedItem.stockItemId
+        );
+
+        if (stock) {
+          let delta = 0;
+
+          if (oldItem) {
+            delta = Number(updatedItem.quantity) - Number(oldItem.quantity);
+          } else {
+            delta = Number(updatedItem.quantity);
+          }
+
+          if (delta !== 0) {
+            const newStockQty = Number(stock.quantity) - delta;
+
+            await updateStockQuantity(updatedItem.stockItemId, newStockQty);
+
+            await saveStockMovement({
+              stockItemId: updatedItem.stockItemId,
+              itemName: updatedItem.name || stock.name,
+              type: delta > 0 ? "OUT" : "IN",
+              quantity: Math.abs(delta),
+              source: "QUICK_SALE",
+              sourceLabel:
+                delta > 0
+                  ? "Quick sale updated - extra stock sold"
+                  : "Quick sale updated - stock restored",
+              balanceAfter: newStockQty,
+              referenceId: salesId,
+              referenceType: "SALE",
+              note: `Sale updated for ${buyerName}`,
+            });
+          }
+        }
+      }
+
+      // 🗑️ Restore stock for removed sale items
+      for (const oldItem of originalSale) {
+        const stillExists = updatedSaleItems.find(
+          (i) => i.stockItemId === oldItem.stockItemId
+        );
+
+        if (!stillExists) {
+          const stock = stockItems.find((s) => s.id === oldItem.stockItemId);
+
+          if (stock) {
+            const restoredQty =
+              Number(stock.quantity) + Number(oldItem.quantity);
+
+            await updateStockQuantity(oldItem.stockItemId, restoredQty);
+
+            await saveStockMovement({
+              stockItemId: oldItem.stockItemId,
+              itemName: oldItem.name || stock.name,
+              type: "IN",
+              quantity: Number(oldItem.quantity),
+              source: "QUICK_SALE",
+              sourceLabel: "Quick sale item removed - stock restored",
+              balanceAfter: restoredQty,
+              referenceId: salesId,
+              referenceType: "SALE",
+              note: `Item removed from sale for ${buyerName}`,
+            });
+          }
+        }
+      }
+
+      Alert.alert("✅ Success", "Sale updated successfully.", [
+        {
+          text: "OK",
+          onPress: () =>
+            router.replace({
+              pathname: "/screens/sales/viewSaleScreen",
+              params: { salesId },
+            }),
+        },
       ]);
     } catch (err) {
       console.error("❌ Error saving sale:", err);
-      Alert.alert("Error", "Failed to update sale. Please try again.");
+      Alert.alert("Error", "Failed to update sale.");
     }
   };
 
-return (
-  <ScreenWrapper>
-    <LinearGradient
-      colors={["#0d1b2a", "#1b263b", "#415a77"]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.gradient}
-    >
-      <SafeAreaView style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.scroll}>
-          {/* 📍 Title Outside Form */}
-          {/* 🧊 Frosted Glass Form */}
-          <View style={styles.formCard}>
-            {/* Buyer */}
-            <Text style={styles.label}>Buyer Name</Text>
+  // 🗑️ Delete an item
+  const handleDeleteItem = (stockItemId: string) => {
+    Alert.alert('Confirm', 'Remove this item?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () =>
+          setSaleItems((prev) => prev.filter((i) => i.stockItemId !== stockItemId)),
+      },
+    ]);
+  };
+
+  // 🧾 Build dropdown data with dynamic state (stable, sorted, reactive)
+  const dropdownData = React.useMemo(() => {
+    // 1️⃣ Map current stock items
+    const baseList = stockItems.map((item) => {
+      const isInSale = saleItems.some((s) => s.stockItemId === item.id);
+      return {
+        label: isInSale
+          ? `${item.name} (Item already selected)`
+          : `${item.name} (${item.quantity} in stock)`,
+        value: item.id,
+        disabled: isInSale,
+      };
+    });
+
+    // 2️⃣ If the selected sold item isn’t in stock, add it back manually
+    if (selectedStockId && !baseList.some((d) => d.value === selectedStockId)) {
+      const soldItem = saleItems.find((s) => s.stockItemId === selectedStockId);
+      if (soldItem) {
+        baseList.push({
+          label: `${soldItem.name} (Sold / Unavailable)`,
+          value: soldItem.stockItemId,
+          disabled: true,
+        });
+      }
+    }
+
+    // 3️⃣ Sort — available first, disabled last
+    const sortedList = [
+      ...baseList.filter((i) => !i.disabled),
+      ...baseList.filter((i) => i.disabled),
+    ];
+
+    return sortedList;
+  }, [stockItems, saleItems, selectedStockId]);
+
+
+  // return (
+  //   <ScreenWrapper>
+  //     <LinearGradient colors={['#0d1b2a', '#1b263b', '#415a77']} style={styles.gradient}>
+  //       <SafeAreaView style={{ flex: 1 }}>
+  //         <ScrollView contentContainerStyle={styles.scrollContainer}>
+  //           <View style={styles.form}>
+  //             <Text style={styles.title}>Edit Sale</Text>
+
+  //             {/* <Text style={styles.label}>Buyer Name</Text> */}
+  //             <TextInput
+  //               value={buyerName}
+  //               onChangeText={setBuyerName}
+  //               style={styles.input}
+  //               placeholder="Enter buyer name"
+  //               placeholderTextColor={colorScheme === "dark" ? "#aaa" : "#666"}
+
+  //             />
+
+  //             {/* 🧾 Stock Item Dropdown */}
+  //             <Dropdown
+  //               style={styles.dropdown}
+  //               data={dropdownData}
+  //               labelField="label"
+  //               valueField="value"
+  //               placeholder="Select Stock Item"
+  //               value={selectedStockId}
+  //               disable={false}
+  //               renderItem={(item) => (
+  //                 <View
+  //                   style={{
+  //                     paddingVertical: 10,
+  //                     paddingHorizontal: 12,
+  //                     opacity: item.disabled ? 0.5 : 1,
+  //                     flexDirection: "row",
+  //                     alignItems: "center",
+  //                     justifyContent: "space-between",
+  //                   }}
+  //                 >
+  //                   <Text style={{ color: "#000" }}>{item.label}</Text>
+  //                   {item.disabled && (
+  //                     <Text style={{ color: "#d9534f", fontSize: 12, fontWeight: "600" }}>
+  //                       🚫
+  //                     </Text>
+  //                   )}
+  //                 </View>
+  //               )}
+  //               onChange={(item) => {
+  //                 if (item.disabled) {
+  //                   Alert.alert(
+  //                     "Item already selected",
+  //                     "This stock item is already part of the current sale."
+  //                   );
+  //                   return;
+  //                 }
+
+  //                 setSelectedStockId(item.value);
+  //                 const selected = stockItems.find((s) => s.id === item.value);
+  //                 if (selected) {
+  //                   setPrice(selected.price ?? "");
+  //                 } else {
+  //                   const soldItem = saleItems.find((s) => s.stockItemId === item.value);
+  //                   if (soldItem) setPrice(soldItem.price);
+  //                 }
+  //               }}
+  //             />
+  //             {/* <Text style={styles.label}>Quantity</Text> */}
+  //             <TextInput
+  //               value={quantity === '' ? '' : String(quantity)}
+  //               onChangeText={(val) => setQuantity(val === '' ? '' : parseInt(val))}
+  //               keyboardType="numeric"
+  //               style={styles.input}
+  //               placeholder="Enter quantity"
+  //               placeholderTextColor={colorScheme === "dark" ? "#aaa" : "#666"}
+
+  //             />
+
+  //             {/* <Text style={styles.label}>Price</Text> */}
+  //             <TextInput
+  //               value={price === '' ? '' : String(price)}
+  //               onChangeText={(val) => setPrice(val === '' ? '' : parseFloat(val))}
+  //               keyboardType="numeric"
+  //               style={styles.input}
+  //               placeholder="Enter price"
+  //               placeholderTextColor={colorScheme === "dark" ? "#aaa" : "#666"}
+
+  //             />
+
+  //             <TouchableOpacity onPress={handleAddItem}>
+  //               <LinearGradient colors={['#2196F3', '#0D47A1']} style={styles.gradientButton}>
+  //                 <Text style={styles.buttonText}>+ Add Item</Text>
+  //               </LinearGradient>
+  //             </TouchableOpacity>
+
+  //             <TouchableOpacity onPress={handleSaveChanges}>
+  //               <LinearGradient colors={['#4CAF50', '#2E7D32']} style={styles.gradientButton}>
+  //                 <Text style={styles.buttonText}>💾 Save Changes</Text>
+  //               </LinearGradient>
+  //             </TouchableOpacity>
+
+  //             {/* Preview items */}
+  //             {saleItems.length > 0 && (
+  //               <View style={{ marginTop: 20 }}>
+  //                 <Text style={{ fontWeight: '700', fontSize: 18, marginBottom: 10, color: '#0d0c0cff' }}>
+  //                   Current Sale Items:
+  //                 </Text>
+  //                 {saleItems.map((item, idx) => (
+  //                   <View key={idx} style={styles.itemPreview}>
+  //                     <Text style={{ color: '#fff' }}>
+  //                       {idx + 1}. {item.name} — {item.quantity} × £{item.price.toFixed(2)}
+  //                     </Text>
+  //                     <TouchableOpacity onPress={() => handleDeleteItem(item.stockItemId)}>
+  //                       <Text style={{ color: '#ff4d4d', fontWeight: '700' }}>✕</Text>
+  //                     </TouchableOpacity>
+  //                   </View>
+  //                 ))}
+  //               </View>
+  //             )}
+  //           </View>
+  //         </ScrollView>
+  //       </SafeAreaView>
+  //     </LinearGradient>
+  //   </ScreenWrapper>
+  // );
+  return (
+    <ScreenWrapper scroll backgroundColor="#0d1b2a">
+      <LinearGradient
+        colors={['#0d1b2a', '#1b263b', '#415a77']}
+        style={styles.gradient}
+      >
+        <View style={styles.scrollContainer}>
+          <View style={styles.form}>
+            <Text style={styles.title}>Edit Sale</Text>
+
             <TextInput
-              style={styles.input}
-              placeholder="Enter buyer name"
-              placeholderTextColor="#bbb"
               value={buyerName}
               onChangeText={setBuyerName}
+              style={styles.input}
+              placeholder="Enter buyer name"
+              placeholderTextColor={colorScheme === 'dark' ? '#aaa' : '#666'}
             />
 
-            {/* Existing Sale Item */}
-            <Text style={styles.label}>Select Item</Text>
             <Dropdown
-              data={[
-                ...saleItems.map((i) => ({
-                  label: i.name,
-                  value: i.stockItemId,
-                })),
-                { label: "+ Add New Item", value: "new" },
-              ]}
+              style={styles.dropdown}
+              data={dropdownData}
               labelField="label"
               valueField="value"
-              value={selectedItemId}
-              onChange={(item) => handleSelectItem(item.value)}
-              placeholder="Select item"
-              style={styles.dropdown}
-              placeholderStyle={styles.dropdownPlaceholder}
-              selectedTextStyle={styles.dropdownText}
+              placeholder="Select Stock Item"
+              value={selectedStockId}
+              disable={false}
+              renderItem={(item) => (
+                <View
+                  style={{
+                    paddingVertical: 10,
+                    paddingHorizontal: 12,
+                    opacity: item.disabled ? 0.5 : 1,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <Text style={{ color: '#000' }}>{item.label}</Text>
+                  {item.disabled && (
+                    <Text style={{ color: '#d9534f', fontSize: 12, fontWeight: '600' }}>
+                      🚫
+                    </Text>
+                  )}
+                </View>
+              )}
+              onChange={(item) => {
+                if (item.disabled) {
+                  Alert.alert(
+                    'Item already selected',
+                    'This stock item is already part of the current sale.'
+                  );
+                  return;
+                }
+
+                setSelectedStockId(item.value);
+                const selected = stockItems.find((s) => s.id === item.value);
+
+                if (selected) {
+                  setPrice(selected.price ?? '');
+                } else {
+                  const soldItem = saleItems.find((s) => s.stockItemId === item.value);
+                  if (soldItem) setPrice(soldItem.price);
+                }
+              }}
             />
 
-            {/* New Item Stock Dropdown */}
-            {selectedItemId === "new" && (
-              <>
-                <Text style={styles.label}>Select Stock Item</Text>
-                <Dropdown
-                  data={stockList
-                    .filter((s) => !saleItems.some((item) => item.stockItemId === s.id))
-                    .map((s) => ({
-                      label: `${s.name} (Available: ${s.quantity})`,
-                      value: s.id,
-                    }))}
-                  labelField="label"
-                  valueField="value"
-                  value={selectedStockItemId}
-                  onChange={(item) => setSelectedStockItemId(item.value)}
-                  placeholder="Choose from stock"
-                  style={styles.dropdown}
-                  placeholderStyle={styles.dropdownPlaceholder}
-                  selectedTextStyle={styles.dropdownText}
-                />
-              </>
-            )}
-
-            {/* Quantity / Price */}
-            <Text style={styles.label}>Quantity</Text>
             <TextInput
+              value={quantity === '' ? '' : String(quantity)}
+              onChangeText={(val) => setQuantity(val === '' ? '' : parseInt(val))}
+              keyboardType="number-pad"
+              returnKeyType="done"
+              onSubmitEditing={Keyboard.dismiss}
               style={styles.input}
-              keyboardType="numeric"
               placeholder="Enter quantity"
-              placeholderTextColor="#bbb"
-              value={quantity}
-              onChangeText={setQuantity}
+              placeholderTextColor={colorScheme === 'dark' ? '#aaa' : '#666'}
             />
 
-            <Text style={styles.label}>Price (£)</Text>
             <TextInput
+              value={price === '' ? '' : String(price)}
+              onChangeText={(val) => setPrice(val === '' ? '' : parseFloat(val))}
+              keyboardType="decimal-pad"
+              returnKeyType="done"
+              onSubmitEditing={Keyboard.dismiss}
               style={styles.input}
-              keyboardType="numeric"
               placeholder="Enter price"
-              placeholderTextColor="#bbb"
-              value={price}
-              onChangeText={setPrice}
+              placeholderTextColor={colorScheme === 'dark' ? '#aaa' : '#666'}
             />
 
-            {/* Buttons */}
-            <View style={styles.buttonGroup}>
-              <TouchableOpacity style={styles.saveButton} onPress={handleSave} activeOpacity={0.9}>
-                <Text style={styles.saveText}>💾 Save Changes</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => router.back()}
-                activeOpacity={0.9}
+            <TouchableOpacity onPress={handleAddItem}>
+              <LinearGradient
+                colors={['#2196F3', '#0D47A1']}
+                style={styles.gradientButton}
               >
-                <Text style={styles.cancelText}>✖ Cancel</Text>
-              </TouchableOpacity>
-            </View>
+                <Text style={styles.buttonText}>+ Add Item</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={handleSaveChanges}>
+              <LinearGradient
+                colors={['#4CAF50', '#2E7D32']}
+                style={styles.gradientButton}
+              >
+                <Text style={styles.buttonText}>💾 Save Changes</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {saleItems.length > 0 && (
+              <View style={styles.previewContainer}>
+                <Text style={styles.previewTitle}>Current Sale Items:</Text>
+
+                {saleItems.map((item, idx) => (
+                  <View key={idx} style={styles.itemPreview}>
+                    <Text style={{ color: '#fff' }}>
+                      {idx + 1}. {item.name} — {item.quantity} × £{item.price.toFixed(2)}
+                    </Text>
+
+                    <TouchableOpacity onPress={() => handleDeleteItem(item.stockItemId)}>
+                      <Text style={{ color: '#ff4d4d', fontWeight: '700' }}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
-        </ScrollView>
-      </SafeAreaView>
-    </LinearGradient>
-  </ScreenWrapper>
-);
+        </View>
+      </LinearGradient>
+    </ScreenWrapper>
+  );
 };
 
-// 💅 Styles
 const styles = StyleSheet.create({
-  gradient: { flex: 1 },
-  scroll: {
-    flexGrow: 1,
-    paddingVertical: 30,
-    paddingHorizontal: 20,
-  },
-  title: {
-    color: "#fff",
-    fontSize: 30,
-    fontWeight: "800",
-    marginBottom: 20,
-    textAlign: "center",
-    letterSpacing: 0.5,
-  },
-  formCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.08)",
-    borderRadius: 24,
+  gradient: {
+  flex: 1,
+  minHeight: '100%',
+},
+
+scrollContainer: {
+  padding: 20,
+  paddingBottom: 150,
+},
+
+previewContainer: {
+  marginTop: 20,
+},
+
+previewTitle: {
+  fontWeight: '700',
+  fontSize: 18,
+  marginBottom: 10,
+  color: '#fff',
+},
+
+scrollContainer: { padding: 30, paddingBottom: 120 },
+  form: {
+    backgroundColor: 'rgba(239, 230, 230, 1)',
+    borderRadius: 16,
     padding: 20,
-    shadowColor: "#000",
-    shadowOpacity: 0.35,
-    shadowRadius: 15,
-    shadowOffset: { width: 0, height: 6 },
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.15)",
   },
-  label: {
-    color: "#dbeafe",
-    fontSize: 16,
-    marginBottom: 8,
-    marginTop: 18,
-    fontWeight: "600",
-  },
+  title: { fontSize: 22, fontWeight: '700', color: '#0f0f0fff', marginBottom: 10 },
+  label: { color: '#0c0b0bff', fontSize: 16, marginTop: 10 },
   input: {
-    backgroundColor: "rgba(255,255,255,0.18)",
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    color: "#fff",
-    fontSize: 17,
-    fontWeight: "500",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.15)",
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 16,
+    marginTop: 5,
   },
   dropdown: {
-    backgroundColor: "rgba(255,255,255,0.18)",
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    height: 56,
+    height: 50,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.15)",
+    borderRadius: 8,
+    marginTop: 10,
+    paddingHorizontal: 10,
   },
-  dropdownPlaceholder: {
-    color: "#bbb",
-    fontSize: 15,
-    fontWeight: "500",
+  gradientButton: {
+    borderRadius: 8,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 20,
   },
-  dropdownText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  buttonGroup: {
-    marginTop: 40,
-    gap: 14,
-  },
-  saveButton: {
-    backgroundColor: "rgba(34,197,94,0.92)",
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: "center",
-    shadowColor: "#22c55e",
-    shadowOpacity: 0.4,
-    shadowOffset: { width: 0, height: 5 },
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  saveText: {
-    color: "#fff",
-    fontWeight: "700",
-    fontSize: 18,
-    letterSpacing: 0.4,
-  },
-  cancelButton: {
-    backgroundColor: "rgba(239,68,68,0.9)",
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: "center",
-    shadowColor: "#ef4444",
-    shadowOpacity: 0.4,
-    shadowOffset: { width: 0, height: 5 },
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  cancelText: {
-    color: "#fff",
-    fontWeight: "700",
-    fontSize: 18,
-    letterSpacing: 0.4,
+  buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
+  itemPreview: {
+    backgroundColor: '#45556e',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
 });
+
 export default EditSaleScreen;

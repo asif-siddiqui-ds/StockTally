@@ -11,7 +11,7 @@
 // export { ID };
 
 // appwrite.ts
-import { Account, Client, Databases, ID, Query, Storage } from "appwrite";
+import { Account, Client, Databases, ID, OAuthProvider, Query, Storage } from "appwrite";
 
 // ✅ Initialize the Appwrite client
 const client = new Client();
@@ -23,5 +23,5 @@ client
 export const account = new Account(client);
 export const database = new Databases(client);
 export const storage = new Storage(client);
-export { ID, Query };
+export { ID, OAuthProvider, Query };
 

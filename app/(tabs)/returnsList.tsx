@@ -1,433 +1,3 @@
-// import React, { useState, useCallback } from 'react';
-// import {
-//   ActivityIndicator,
-//   Alert,
-//   FlatList,
-//   StyleSheet,
-//   SafeAreaView,
-//   Text,
-//   TouchableOpacity,
-//   View,
-// } from 'react-native';
-// import { useRouter } from 'expo-router';
-// import { useFocusEffect } from '@react-navigation/native';
-// import { getReturnItems, deleteReturnItem } from '@/lib/storage';
-// import ScreenWrapper from '@/components/ScreenWrapper';
-
-// export type ReturnItem = {
-//   id: string;
-//   name: string;
-//   quantity: number;
-//   reason: string;
-//   date: string;
-// };
-
-// const ReturnListScreen: React.FC = () => {
-//   const [returns, setReturns] = useState<ReturnItem[]>([]);
-//   const [loading, setLoading] = useState(true);
-//   const router = useRouter();
-
-//   const loadReturns = async () => {
-//     try {
-//       setLoading(true);
-//       const data = await getReturnItems();
-//       setReturns(data);
-//     } catch (err) {
-//       console.error('❌ Error loading returns:', err);
-//       Alert.alert('Error', 'Failed to load returns.');
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   // 🔄 Refresh when screen is focused
-//   useFocusEffect(
-//     useCallback(() => {
-//       loadReturns();
-//     }, [])
-//   );
-
-//   // 🗑️ Delete handler
-//   const handleDelete = (id: string) => {
-//     Alert.alert('Confirm Delete', 'Are you sure you want to delete this return?', [
-//       { text: 'Cancel', style: 'cancel' },
-//       {
-//         text: 'Delete',
-//         style: 'destructive',
-//         onPress: async () => {
-//           try {
-//             await deleteReturnItem(id);
-//             setReturns((prev) => prev.filter((r) => r.id !== id));
-//             Alert.alert('Deleted', 'Return record deleted successfully.');
-//           } catch (err) {
-//             console.error('❌ Error deleting return:', err);
-//             Alert.alert('Error', 'Failed to delete return.');
-//           }
-//         },
-//       },
-//     ]);
-//   };
-
-//   const handleEdit = (id: string) => {
-//     router.push(`../screens/returns/${id}`);
-//   };
-
-//   const renderItem = ({ item }: { item: any }) => (
-//       <TouchableOpacity onPress={() => handleEdit(item.id)}>
-//         <View style={styles.row}>
-//           <Text style={styles.datecell}>
-//             {(() => {
-//               const d = new Date(item.date);
-//               const day = String(d.getDate()).padStart(2, '0');
-//               const month = String(d.getMonth() + 1).padStart(2, '0');
-//               const year = String(d.getFullYear()).slice(-2);
-//               return `${day}/${month}/${year}`;
-//             })()}
-//           </Text>
-//           <Text style={styles.cell}>{item.quantity}</Text>
-//         </View>
-//       </TouchableOpacity>
-//     );
-
-//   return (
-//     <ScreenWrapper>
-//       <SafeAreaView style={styles.container}>
-//         <TouchableOpacity
-//           style={styles.recordButton}
-//           onPress={() => router.push('../../screens/returns/record')}
-//         >
-//           <Text style={styles.recordButtonText}>+ Add Return</Text>
-//         </TouchableOpacity>
-
-        
-//         <View style={styles.header}>
-//           <TouchableOpacity style={styles.dateheaderCell} onPress={() => sortItems('date')}>
-//             <Text style={styles.headerText}>Date</Text>
-//           </TouchableOpacity>
-//           <TouchableOpacity style={styles.itemheaderCell} onPress={() => sortItems('name')}>
-//             <Text style={styles.headerText}>Item</Text>
-//           </TouchableOpacity>
-//           <TouchableOpacity style={styles.headerCell} onPress={() => sortItems('quantity')}>
-//             <Text style={styles.headerText}>Qty.</Text>
-//           </TouchableOpacity>
-//         </View>
-
-//         <FlatList
-//           data={returns}
-//           renderItem={renderItem}
-//           keyExtractor={(item) => item.id}
-//           ListEmptyComponent={<Text style={styles.noData}>No return has recorded yet.</Text>}
-//           contentContainerStyle={{ paddingBottom: 80 }}
-//         />
-//       </SafeAreaView>
-//     </ScreenWrapper>
-//   );
-// };
-
-// const styles = StyleSheet.create({
-//   container: { flex: 1, padding: 10 },
-//   searchInput: {
-//     height: 40,
-//     marginTop: 70,
-//     borderColor: '#ccc',
-//     borderWidth: 1,
-//     marginBottom: 20,
-//     paddingHorizontal: 10,
-//     borderRadius: 8,
-//   },
-//   header: {
-//     flexDirection: 'row',
-//     backgroundColor: '#4CAF50',
-//     paddingVertical: 10,
-//     borderRadius: 8,
-//     marginBottom: 5,
-//   },
-//   headerCell: {
-//     flex: 1,
-//     fontSize: 16,
-//     fontWeight: '600',
-//     color: '#ffffff',
-//     textAlign: 'center',
-//   },
-//   dateheaderCell: {
-//     flex: 0.9,
-//     fontSize: 16,
-//     fontWeight: '600',
-//     color: '#ffffff',
-//     textAlign: 'center',
-//   },
-//   itemheaderCell: {
-//     flex: 1.5,
-//     fontSize: 16,
-//     fontWeight: '600',
-//     color: '#ffffff',
-//     textAlign: 'left',
-//   },
-//   headerText: {
-//     fontSize: 16,
-//     fontWeight: '600',
-//     color: '#ffffff',
-//     textAlign: 'center',
-//   },
-//   row: {
-//     flexDirection: 'row',
-//     paddingVertical: 12,
-//     backgroundColor: '#f9f9f9',
-//     marginBottom: 2,
-//     borderRadius: 6,
-//   },
-//   cell: {
-//     flex: 1,
-//     fontSize: 14,
-//     textAlign: 'center',
-//   },
-//   itemcell: {
-//     flex: 1,
-//     fontSize: 14,
-//     textAlign: 'left',
-//   },
-//   datecell: {
-//     flex: 1.3,
-//     fontSize: 14,
-//     marginLeft: 10,
-//     textAlign: 'left',
-//   },
-//   noData: {
-//     textAlign: 'center',
-//     marginVertical: 20,
-//     fontSize: 16,
-//     color: '#777',
-//   },
-//   recordButton: {
-//     position: 'absolute',
-//     top: 20,
-//     right: 20,
-//     backgroundColor: '#007BFF',
-//     borderRadius: 30,
-//     paddingVertical: 10,
-//     paddingHorizontal: 20,
-//     elevation: 2,
-//   },
-//   recordButtonText: {
-//     color: '#fff',
-//     fontSize: 16,
-//     textAlign: 'center',
-//     fontWeight: '600',
-//   },
-// });
-
-// // export default ReturnListScreen;
-
-// import ScreenWrapper from '@/components/ScreenWrapper';
-// import { getReturnItems } from '@/lib/storage';
-// import { useFocusEffect } from '@react-navigation/native';
-// import { useRouter } from 'expo-router';
-// import React, { useCallback, useState } from 'react';
-// import {
-//   Alert,
-//   FlatList,
-//   StyleSheet,
-//   Text,
-//   TouchableOpacity,
-//   View
-// } from 'react-native';
-
-// // export type ReturnItem = {
-// //   id: string;
-// //   name: string;
-// //   quantity: number;
-// //   reason: string;
-// //   date: string;
-// // };
-
-
-// export default function ReturnListScreen() {
-//   const [items, setItems] = useState<[]>([]);
-//   const router = useRouter();
- 
-
-//   /**
-//    * 🔄 Load Stock Items from Appwrite
-//    */
-//   useFocusEffect(
-//     useCallback(() => {
-//       const loadItems = async () => {
-//         try {
-//           const allItems = await getReturnItems();
-//           setItems(allItems);
-//         } catch (error) {
-//           Alert.alert("Error", "Failed to load return items.");
-//         }
-//       };
-//       loadItems();
-//     }, [])
-//   );
-
-//   /**
-//    * ❌ Handle Delete
-//    */
-// //   const handleDelete = async (id: string) => {
-// //   const returnItem = items.find((i) => i.id === id);
-// //   if (!returnItem) return;
-
-// //   Alert.alert(
-// //     "Delete Return",
-// //     `Do you want to restore ${returnItem.quantity} items back to stock when deleting this return?`,
-// //     [
-// //       { text: "Cancel", style: "cancel" },
-// //       {
-// //         text: "Delete Only",
-// //         style: "destructive",
-// //         onPress: async () => {
-// //           await deleteReturnItem(id);
-// //           setItems((prev) => prev.filter((i) => i.id !== id));
-// //           Alert.alert("Deleted", "Return deleted (stock unchanged).");
-// //         },
-// //       },
-// //       {
-// //         text: "Delete & Restore",
-// //         style: "destructive",
-// //         onPress: async () => {
-// //           try {
-// //             // Restore stock if linked
-// //             if (returnItem.stockItemId) {
-// //               const stock = await getStockItem(returnItem.stockItemId);
-// //               if (stock) {
-// //                 const newQty = stock.quantity + returnItem.quantity;
-// //                 await updateStockQuantity(returnItem.stockItemId, newQty);
-// //               }
-// //             }
-
-// //             await deleteReturnItem(id);
-// //             setItems((prev) => prev.filter((i) => i.id !== id));
-// //             Alert.alert("Deleted", "Return deleted and stock restored.");
-// //           } catch (err) {
-// //             console.error("❌ Error restoring stock:", err);
-// //             Alert.alert("Error", "Failed to restore stock.");
-// //           }
-// //         },
-// //       },
-// //     ]
-// //   );
-// // };
-//   /**
-//    * 🔄 Render Header Row
-//    */
-//   const renderHeader = () => (
-//     <View style={[styles.row, styles.header]}>
-//       <Text style={[styles.cell, styles.headerCell, { flex: .2 }]}></Text>
-//       <Text style={[styles.cell, styles.headerCell, { flex: 2 }]}>Date</Text>
-//       <Text style={[styles.cell, styles.headerCell, { flex: 2.5 }]}>Item</Text>
-//       <Text style={[styles.cell, styles.headerCell, { flex: 1 }]}>Qty.</Text>
-//       <Text style={[styles.cell, styles.headerCell, { flex: 0.5 }]} />
-//     </View>
-//   );
-//   // const sortItems = (field: typeof sortField) => {
-//   //   let newOrder = sortOrder;
-
-//   //   if (field === sortField) {
-//   //     newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
-//   //     setSortOrder(newOrder);
-//   //   } else {
-//   //     setSortField(field);
-//   //     newOrder = 'asc';
-//   //     setSortOrder('asc');
-//   //   }
-//   // };
-
-//   /**
-//    * 🔄 Render Each Stock Item
-//    */
-//     const handleEdit = (id: string) => {
-//       router.push(`../screens/returns/${id}`);
-//     };
-    
-//     const renderItem = ({ item }: { item: any }) => (
-//       <TouchableOpacity onPress={() => handleEdit(item.id)}>
-//         <View style={styles.row}>
-//           <Text style={[styles.cell, { flex: .2 }]}></Text>  
-//           <Text style={styles.cell, { flex: 1.5 }}>
-//                 {(() => {
-//                   const d = new Date(item.date);
-//                   const day = String(d.getDate()).padStart(2, '0');
-//                   const month = String(d.getMonth() + 1).padStart(2, '0');
-//                   const year = String(d.getFullYear()).slice(-2);
-//                   return `${day}/${month}/${year}`;
-//                 })()}
-//           </Text>
-//           <Text style={[styles.cell, { flex: 2 }]}>{item.name}</Text>
-//           <Text style={[styles.cell, { flex: 1 }]}>{item.quantity}</Text>     
-//         </View>
-//       </TouchableOpacity>
-//     );
-
-//   /**
-//    * ✅ Render Main Content
-//    */
-//   return (
-//     <ScreenWrapper>
-//       <View style={{ paddingHorizontal: 16, paddingTop: 10 }}>
-//         <TouchableOpacity style={styles.addButton} onPress={() => router.push('../screens/returns/record')}>
-//           <Text style={{ color: '#fff', fontWeight: 'bold' }}>+ Add Returns</Text>
-//         </TouchableOpacity>
-//       </View>
-      
-//       <FlatList
-//         data={items}
-//         keyExtractor={(item) => item.id}
-//         renderItem={renderItem}
-//         ListHeaderComponent={renderHeader}
-//         ListEmptyComponent={<Text>No return items available</Text>}
-//         contentContainerStyle={{ paddingBottom: 100 }}
-//       />
-//     </ScreenWrapper>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   row: {
-//     flexDirection: 'row',
-//     paddingVertical: 12,
-//     borderBottomWidth: 1,
-//     borderColor: '#eee',
-//     alignItems: 'center',
-//   },
-//   cell: {
-//     fontSize: 16,
-//     paddingHorizontal: 2,
-//     textAlign: 'left',
-//   },
-//   header: {
-//     backgroundColor: '#f7f7f7',
-//     borderBottomWidth: 2,
-//     borderColor: '#ccc',
-//     paddingVertical: 10,
-//   },
-//   headerCell: {
-//     fontWeight: 'bold',
-//   },
-//   // addButton: {
-//   //   backgroundColor: '#007bff',
-//   //   paddingVertical: 12,
-//   //   paddingHorizontal: 20,
-//   //   borderRadius: 6,
-//   //   alignItems: 'center',
-//   //   marginTop: 16,
-//   // },
-//   addButtonText: {
-//     color: '#fff',
-//     fontSize: 16,
-//   },
-//   addButton: {
-//     backgroundColor: '#4CAF50',
-//     borderRadius: 30,
-//     paddingVertical: 10,
-//     paddingHorizontal: 20,
-//     alignSelf: 'flex-end',
-//    margin: 10,
-//   }
-// });
-
 import ScreenWrapper from "@/components/ScreenWrapper";
 import { getReturnItems, ReturnItem } from "@/lib/storage";
 import { useFocusEffect } from "@react-navigation/native";
@@ -488,21 +58,45 @@ export default function ReturnListScreen() {
         style={styles.cardShadow}
       >
         <View style={[styles.card, { backgroundColor: cardColor }]}>
-          <View style={styles.cardRow}>
-            <Text style={[styles.cardLabel, { color: textColor }]}>📅</Text>
-            <Text style={[styles.cardText, { color: textColor }]}>{dateStr}</Text>
+          <View style={styles.cardTop}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.cardLabel, { color: textColor }]}>📦</Text>
+              <Text
+                style={[
+                  styles.cardText,
+                  { color: textColor, fontWeight: "600", fontSize: 16 },
+                ]}
+              >
+                {item.name}
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.badge,
+                item.status === "pending_return"
+                  ? styles.pendingBadge
+                  : item.status === "returned_to_supplier"
+                  ? styles.returnedBadge
+                  : item.status === "back_to_stock"
+                  ? styles.backToStockBadge
+                  : styles.noStockChangeBadge,
+              ]}
+            >
+              <Text style={styles.badgeText}>
+                {item.status === "pending_return"
+                  ? "Pending Return"
+                  : item.status === "returned_to_supplier"
+                  ? "Returned to Supplier"
+                  : item.status === "back_to_stock"
+                  ? "Back to Stock"
+                  : "No Stock Change"}
+              </Text>
+            </View>
           </View>
 
           <View style={styles.cardRow}>
-            <Text style={[styles.cardLabel, { color: textColor }]}>📦</Text>
-            <Text
-              style={[
-                styles.cardText,
-                { color: textColor, fontWeight: "600", fontSize: 16 },
-              ]}
-            >
-              {item.name}
-            </Text>
+            <Text style={[styles.cardLabel, { color: textColor }]}>📅</Text>
+            <Text style={[styles.cardText, { color: textColor }]}>{dateStr}</Text>
           </View>
 
           <View style={styles.cardRow}>
@@ -520,6 +114,7 @@ export default function ReturnListScreen() {
               </Text>
             </View>
           ) : null}
+        
         </View>
       </TouchableOpacity>
     );
@@ -529,18 +124,39 @@ export default function ReturnListScreen() {
     <ScreenWrapper>
       <LinearGradient colors={["#0d1b2a", "#1b263b", "#415a77"]} style={styles.gradient}>
       
-      {/* ✅ Gradient Header */}
-      <TouchableOpacity
-        onPress={() => router.push("/screens/returns/record")} > 
-        <LinearGradient
-          colors={["#135c16ff", "#2E7D32"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.headerContainer}
+      <View style={styles.actionRow}>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={{ flex: 1 }}
+          onPress={() => router.push("/screens/returns/record")}
         >
-          <Text style={styles.headerTitle}>+ Add Returns</Text>
-        </LinearGradient>
-      </TouchableOpacity>
+          <LinearGradient
+            colors={["#16a34a", "#15803d"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.actionButton}
+          >
+            <Text style={styles.actionIcon}>↩️</Text>
+            <Text style={styles.actionText}>Add Return</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={{ flex: 1 }}
+          onPress={() => router.push("/screens/ReturnStockListScreen")}
+        >
+          <LinearGradient
+            colors={["#1e3a8a", "#2563eb"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.actionButton}
+          >
+            <Text style={styles.actionIcon}>🏭</Text>
+            <Text style={styles.actionText}>Supplier</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
 
       <View style={[styles.container]}>
         {/* ✅ List of Returns */}
@@ -570,20 +186,35 @@ export default function ReturnListScreen() {
 
 const styles = StyleSheet.create({
   gradient: { flex: 1 },
-  headerContainer: {
-    paddingVertical: 20,
-    paddingHorizontal: 15,
+  actionRow: {
+    flexDirection: "row",
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 10,
+  },
+
+  actionButton: {
+    paddingVertical: 14,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    elevation: 5,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
   },
-  headerTitle: {
-    color: "#fff",
+
+  actionIcon: {
     fontSize: 22,
-    fontWeight: "700",
-    textTransform: "uppercase",
+    marginBottom: 4,
+  },
+
+  actionText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "800",
   },
   container: {
     flex: 1,
@@ -622,16 +253,84 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   addButton: {
-    paddingVertical: 14,
-    paddingHorizontal: 25,
-    borderRadius: 30,
+    marginTop: 20,
+    paddingVertical: 18,
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: 18,
     elevation: 5,
+    shadowColor: "#000",
+    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
   },
   addButtonText: {
     color: "#fff",
     fontWeight: "700",
     fontSize: 16,
+  },
+  supplierButton: {
+    marginTop: 20,
+    paddingVertical: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 18,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
+  },
+  statusBadge: {
+    alignSelf: "flex-start",
+    marginTop: 8,
+    backgroundColor: "#2563eb",
+    color: "#fff",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    overflow: "hidden",
+    fontWeight: "800",
+    fontSize: 12,
+  },
+  badge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    alignSelf: "flex-start",
+  },
+  cardTop: {
+    flexDirection: "row",
+    marginBottom: 12,
+    alignItems: "center",
+  },
+
+  pendingBadge: {
+    backgroundColor: "#f97316", // orange
+  },
+
+  returnedBadge: {
+    backgroundColor: "#6b7280", // grey
+  },
+
+  backToStockBadge: {
+    backgroundColor: "#2563eb", // blue
+  },
+
+  noStockChangeBadge: {
+    backgroundColor: "#16a34a", // green
+  },
+
+  badgeText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "900",
+  },
+  supplierText: {
+    color: "#fff",
+    fontSize: 21,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
 });

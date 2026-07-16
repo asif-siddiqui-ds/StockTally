@@ -1,0 +1,11 @@
+{
+  "name": "shopify-auth-handler",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "expo-secure-store": "~14.2.4",
+    "node-appwrite": "^12.0.0",
+    "node-fetch": "^3.3.2",
+    "uuid": "^13.0.0"
+  }
+}

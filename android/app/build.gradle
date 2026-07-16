@@ -92,8 +92,8 @@ android {
         applicationId 'com.asif.Stocktally'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 27
-        versionName "2.0.4"
+        versionCode 43
+        versionName "2.1.4"
     }
     signingConfigs {
         debug {

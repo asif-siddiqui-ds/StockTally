@@ -2,7 +2,7 @@
   "expo": {
     "name": "StockTally",
     "slug": "StockTally",
-    "version": "2.0.4",
+    "version": "2.1.4",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "stocktally",
@@ -11,11 +11,13 @@
     "ios": {
       "icon": "./assets/images/icon.png",
       "supportsTablet": true,
-      "buildNumber": "12",
+      "buildNumber": "47",
       "bundleIdentifier": "com.asif.Stocktally",
       "usesAppleSignIn": true,
       "infoPlist": {
         "NSPhotoLibraryAddUsageDescription": "Allow this app to save files to your photo library",
+        "NSCameraUsageDescription": "StockTally uses camera for barcode and AI product scanning.",
+        "NSPhotoLibraryUsageDescription": "StockTally uses photo library to scan invoices and products.",
         "UIBackgroundModes": [
           "fetch"
         ],
@@ -29,7 +31,7 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.asif.Stocktally",
-      "versionCode": 27,
+      "versionCode": 43,
       "permissions": [
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
@@ -61,7 +63,8 @@
       ],
       "expo-sqlite",
       "expo-web-browser",
-      "expo-image-picker"
+      "expo-image-picker",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true

@@ -1,246 +1,55 @@
-// import { Entypo } from '@expo/vector-icons';
-// import { useFocusEffect } from '@react-navigation/native';
-// import { useRouter } from 'expo-router';
-// import React, { useCallback, useState } from 'react';
-// import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-// import { Menu, MenuOption, MenuOptions, MenuProvider, MenuTrigger } from 'react-native-popup-menu';
-// import { StockItem, deleteStockItem, getStockItems } from '../../../lib/storage';
-// import ScreenWrapper from '../../../components/ScreenWrapper';
-
-// export default function StockIndex() {
-//   const [items, setItems] = useState<StockItem[]>([]);
-//   const router = useRouter();
-
-//   // Load Stock Items from storage when the screen is focused
-//   useFocusEffect(
-//     useCallback(() => {
-//       const loadItems = async () => {
-//         try {
-//           const data = await getStockItems();
-//           setItems(data);
-//         } catch (error) {
-//           console.error('Error loading stock items:', error);
-//         }
-//       };
-//       loadItems();
-//     }, [])
-//   );
-
-//   // Handle item removal
-// //   const handleRemove = async (id: string) => {
-// //     try {
-// //       const updatedItems = items.filter(item => item.id !== id);
-      
-// //       // If saveStockItems expects an array, it should work as is
-// //     //   await saveStockItems(updatedItems);
-  
-// //       // If saveStockItems expects a single item, you need to loop
-// //       // Uncomment the code below if it is for individual items
-      
-// //       for (const item of updatedItems) {
-// //         await saveStockItems(item);
-// //       }
-      
-// //       setItems(updatedItems);
-// //       Alert.alert("Item Deleted Successfully");
-// //     } catch (error) {
-// //       console.error('Failed to delete item:', error);
-// //       Alert.alert("Failed to Delete Item");
-// //     }
-// //   };
-
-//   const handleRemove = async (id: string) => {
-//     Alert.alert(
-//       "Delete Confirmation",
-//       "Are you sure you want to delete this sale item?",
-//       [
-//         {
-//           text: "Cancel",
-//           style: "cancel",
-//         },
-//         {
-//           text: "Delete",
-//           style: "destructive",
-//           onPress: async () => {
-//             const deletedItem = items.find((item) => item.id === id);
-            
-//             await deleteStockItem(id);
-//             setItems(items.filter((item) => item.id !== id));
-//           }
-//         },
-//       ]
-//     );
-//   };
-  
-
-//   // Render header for the list
-//   const renderHeader = () => (
-//     <View style={[styles.row, styles.header]}>
-//       <Text style={[styles.cell, styles.headerCell, { flex: 2 }]}>Category</Text>
-//       <Text style={[styles.cell, styles.headerCell, { flex: 2 }]}>Item</Text>
-//       <Text style={[styles.cell, styles.headerCell, { flex: 1 }]}>Qty.</Text>
-//       <Text style={[styles.cell, styles.headerCell, { flex: 1 }]} />
-//     </View>
-//   );
-
-//   // Render each item in the list
-//   const renderItem = ({ item }: { item: StockItem }) => (
-//     <View style={styles.row}>
-//       <Text style={[styles.cell, { flex: 1 }]}>{item.category}</Text>
-//       <Text style={[styles.cell, { flex: 1 }]}>{item.name}</Text>
-//       <Text style={[styles.cell, { flex: 0.5 }]}>{item.quantity}</Text>
-
-//       <View style={{ flex: 0.5, alignItems: 'center' }}>
-//         <MenuProvider>
-//           <Menu>
-//             <MenuTrigger>
-//               <Entypo name="dots-three-vertical" size={20} color="gray" />
-//             </MenuTrigger>
-//             <MenuOptions
-//               customStyles={{
-//                 optionsContainer: {
-//                   padding: 8,
-//                   borderRadius: 8,
-//                   backgroundColor: '#fff',
-//                   shadowColor: '#000',
-//                   shadowOffset: { width: 0, height: 2 },
-//                   shadowOpacity: 0.25,
-//                   shadowRadius: 4,
-//                   elevation: 5,
-//                   zIndex: 9999,
-//                 },
-//                 optionWrapper: {
-//                   paddingVertical: 10,
-//                   paddingHorizontal: 12,
-//                 },
-//                 optionText: {
-//                   fontSize: 16,
-//                 },
-//               }}
-//             >
-//               <MenuOption onSelect={() => router.push(`../screens/stock/${item.id}`)}>
-//                 <Text>Edit</Text>
-//               </MenuOption>
-//               <MenuOption onSelect={() => handleRemove(item.id)}>
-//                 <Text style={{ color: 'red' }}>Delete</Text>
-//               </MenuOption>
-//             </MenuOptions>
-//           </Menu>
-//         </MenuProvider>
-//       </View>
-//     </View>
-//   );
-
-//   // Main render
-//   return (
-//     <View style={styles.container}>
-//       <Text style={styles.heading}>Stock Items</Text>
-//       {renderHeader()}
-//       <FlatList
-//         data={items}
-//         keyExtractor={(item) => item.id}
-//         renderItem={renderItem}
-//         contentContainerStyle={{ paddingBottom: 100 }}
-//       />
-//       <TouchableOpacity
-//         style={styles.addButton}
-//         onPress={() => router.push('./add')}
-//       >
-//         <Text style={styles.addButtonText}>+ Add Stock</Text>
-//       </TouchableOpacity>
-//     </View>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     padding: 20,
-//     backgroundColor: '#fff',
-//   },
-//   heading: {
-//     fontSize: 22,
-//     fontWeight: 'bold',
-//     marginBottom: 16,
-//   },
-//   row: {
-//     flexDirection: 'row',
-//     paddingVertical: 12,
-//     borderBottomWidth: 1,
-//     borderColor: '#eee',
-//     alignItems: 'center',
-//   },
-//   cell: {
-//     fontSize: 16,
-//     paddingHorizontal: 4,
-//     textAlign: 'left',
-//   },
-//   header: {
-//     backgroundColor: '#f7f7f7',
-//     borderBottomWidth: 2,
-//     borderColor: '#ccc',
-//     paddingVertical: 10,
-//   },
-//   headerCell: {
-//     fontWeight: 'bold',
-//   },
-//   addButton: {
-//     backgroundColor: '#007bff',
-//     paddingVertical: 12,
-//     paddingHorizontal: 20,
-//     borderRadius: 6,
-//     alignItems: 'center',
-//     marginTop: 16,
-//   },
-//   addButtonText: {
-//     color: '#fff',
-//     fontSize: 16,
-//   },
-//   actions: {
-//     flexDirection: 'row',
-//     justifyContent: 'center',
-//     alignItems: 'center',
-//   },
-// });
-
-// import { Entypo } from '@expo/vector-icons';
-// import { useFocusEffect } from '@react-navigation/native';
-// import { useRouter } from 'expo-router';
-// import React, { useCallback, useState } from 'react';
+// import ScreenWrapper from "@/components/ScreenWrapper";
+// import { useFocusEffect } from "@react-navigation/native";
+// import { LinearGradient } from "expo-linear-gradient";
+// import { useRouter } from "expo-router";
+// import React, { useCallback, useState } from "react";
 // import {
 //   Alert,
 //   FlatList,
 //   StyleSheet,
 //   Text,
+//   TextInput,
 //   TouchableOpacity,
-//   View
-// } from 'react-native';
+//   useColorScheme,
+//   View,
+// } from "react-native";
 // import {
-//   Menu,
-//   MenuOption,
-//   MenuOptions,
-//   MenuTrigger
-// } from 'react-native-popup-menu';
-// import ScreenWrapper from '../../components/ScreenWrapper';
-// import {
-//   StockItem,
 //   deleteStockItem,
-//   getStockItems
-// } from '../../lib/storage';
+//   getReturnItems,
+//   getStockItems,
+//   StockItem,
+// } from "../../lib/storage";
+
+// type StockWithReturns = StockItem & { totalReturned: number };
 
 // export default function StockItemsScreen() {
-//   const [items, setItems] = useState<StockItem[]>([]);
+//   const [items, setItems] = useState<StockWithReturns[]>([]);
+//   const [filteredItems, setFilteredItems] = useState<StockWithReturns[]>([]);
+//   const [searchQuery, setSearchQuery] = useState("");
 //   const router = useRouter();
+//   const colorScheme = useColorScheme();
+//   const textColor = colorScheme === "dark" ? "#fff" : "#000";
+//   const bgColor = colorScheme === "dark" ? "#121212" : "#f5f5f5";
+//   const cardColor = colorScheme === "dark" ? "#1e1e1e" : "#fff";
+//   const inputBg = colorScheme === "dark" ? "#1c1c1c" : "#fff";
 
-//   /**
-//    * 🔄 Load Stock Items from Appwrite
-//    */
+//   // 🔄 Load Stock + Returns
 //   useFocusEffect(
 //     useCallback(() => {
 //       const loadItems = async () => {
 //         try {
-//           const allItems = await getStockItems();
-//           setItems(allItems);
+//           const allStock = await getStockItems();
+//           const allReturns = await getReturnItems();
+
+//           const stockWithReturns: StockWithReturns[] = allStock.map((s) => {
+//             const totalReturned = allReturns
+//               .filter((r) => r.stockItemId === s.id)
+//               .reduce((sum, r) => sum + r.quantity, 0);
+//             return { ...s, totalReturned };
+//           });
+
+//           setItems(stockWithReturns);
+//           setFilteredItems(stockWithReturns);
 //         } catch (error) {
 //           Alert.alert("Error", "Failed to load stock items.");
 //         }
@@ -249,153 +58,337 @@
 //     }, [])
 //   );
 
-//   /**
-//    * ❌ Handle Delete
-//    */
-//   const handleDelete = async (id: string) => {
-//     Alert.alert(
-//       "Delete Confirmation",
-//       "Are you sure you want to delete this stock item?",
-//       [
-//         { text: "Cancel", style: "cancel" },
-//         {
-//           text: "Delete",
-//           style: "destructive",
-//           onPress: async () => {
-//             await deleteStockItem(id);
-//             setItems(items.filter((item) => item.id !== id));
-//           },
-//         },
-//       ]
+//   // 🔍 Filter by Name or Category
+//   const handleSearch = (text: string) => {
+//     setSearchQuery(text);
+//     if (!text.trim()) {
+//       setFilteredItems(items);
+//       return;
+//     }
+
+//     const lower = text.toLowerCase();
+//     const filtered = items.filter(
+//       (item) =>
+//         item.name.toLowerCase().includes(lower) ||
+//         item.category.toLowerCase().includes(lower)
 //     );
+//     setFilteredItems(filtered);
 //   };
 
-//   /**
-//    * 🔄 Render Header Row
-//    */
-//   const renderHeader = () => (
-//     <View style={[styles.row, styles.header]}>
-//       <Text style={[styles.cell, styles.headerCell, { flex: 2 }]}>Category</Text>
-//       <Text style={[styles.cell, styles.headerCell, { flex: 2 }]}>Item</Text>
-//       <Text style={[styles.cell, styles.headerCell, { flex: 1 }]}>Qty.</Text>
-//       <Text style={[styles.cell, styles.headerCell, { flex: 0.5 }]} />
-//     </View>
-//   );
+//   // 🧭 Navigate to Edit Screen
+//   const handleEdit = (id: string) => {
+//     router.push(`/screens/stock/${id}`);
+//   };
 
-//   /**
-//    * 🔄 Render Each Stock Item
-//    */
-//   const renderItem = ({ item }: { item: StockItem }) => (
-//     <View style={styles.row}>
-//       <Text style={[styles.cell, { flex: 2 }]}>{item.category}</Text>
-//       <Text style={[styles.cell, { flex: 2 }]}>{item.name}</Text>
-//       <Text style={[styles.cell, { flex: 1 }]}>{item.quantity}</Text>
+//   // 🗑️ Delete Item
+//   const handleDelete = async (id: string) => {
+//     Alert.alert("Delete Stock", "Are you sure you want to delete this item?", [
+//       { text: "Cancel", style: "cancel" },
+//       {
+//         text: "Delete",
+//         style: "destructive",
+//         onPress: async () => {
+//           await deleteStockItem(id);
+//           const updated = items.filter((i) => i.id !== id);
+//           setItems(updated);
+//           setFilteredItems(updated);
+//         },
+//       },
+//     ]);
+//   };
 
-//       <View style={[styles.cell, { flex: 0.5, alignItems: 'center' }]}>
-     
-//           <Menu>
-//             <MenuTrigger>
-//               <Entypo name="dots-three-vertical" size={20} color="gray" />
-//             </MenuTrigger>
-//             <MenuOptions
-//               customStyles={{
-//                 optionsContainer: {
-//                   padding: 8,
-//                   borderRadius: 8,
-//                   backgroundColor: '#fff',
-//                   shadowColor: '#000',
-//                   shadowOffset: { width: 0, height: 2 },
-//                   shadowOpacity: 0.25,
-//                   shadowRadius: 4,
-//                   elevation: 5,
-//                 },
-//                 optionWrapper: {
-//                   paddingVertical: 10,
-//                   paddingHorizontal: 12,
-//                 },
-//                 optionText: {
-//                   fontSize: 16,
-//                 },
-//               }}
-//             >
-//               <MenuOption onSelect={() => router.push(`../screens/stock/${item.id}`)}>
-//                 <Text>Edit</Text>
-//               </MenuOption>
-//               <MenuOption onSelect={() => handleDelete(item.id)}>
-//                 <Text style={{ color: 'red' }}>Delete</Text>
-//               </MenuOption>
-//             </MenuOptions>
-//           </Menu>
-    
+//   // ✅ Render Each Stock Card
+//   const renderItem = ({ item }: { item: StockWithReturns }) => (
+//     <TouchableOpacity
+//       onPress={() => handleEdit(item.id)}
+//       activeOpacity={0.9}
+//       style={styles.cardShadow}
+//     >
+//       <View style={[styles.card, { backgroundColor: cardColor }]}>
+//         <View style={styles.cardHeader}>
+//           <Text style={[styles.cardTitle, { color: textColor }]}>{item.name}</Text>
+//           <TouchableOpacity onPress={() => handleDelete(item.id)}>
+//             <Text style={{ color: "#d9534f", fontWeight: "700" }}>✕</Text>
+//           </TouchableOpacity>
+//         </View>
+
+//         <View style={styles.cardRow}>
+//           <Text style={[styles.cardLabel, { color: textColor }]}>📦 Category:</Text>
+//           <Text style={[styles.cardValue, { color: textColor }]}>
+//             {item.category || "N/A"}
+//           </Text>
+//         </View>
+
+//         <View style={styles.cardRow}>
+//           <Text style={[styles.cardLabel, { color: textColor }]}>📊 Quantity:</Text>
+//           <Text style={[styles.cardValue, { color: textColor }]}>{item.quantity} {item.unit || "units"}</Text>
+//         </View>
+
+//         <View style={styles.cardRow}>
+//           <Text style={[styles.cardLabel, { color: textColor }]}>↩️ Returns:</Text>
+//           <Text
+//             style={[
+//               styles.cardValue,
+//               { color: item.totalReturned > 0 ? "#E67E22" : textColor },
+//             ]}
+//           >
+//             {item.totalReturned}
+//           </Text>
+//         </View>
 //       </View>
-//     </View>
+//     </TouchableOpacity>
 //   );
 
-//   /**
-//    * ✅ Render Main Content
-//    */
 //   return (
+    
 //     <ScreenWrapper>
-//       <View style={{ paddingHorizontal: 16, paddingTop: 10 }}>
-//         <TouchableOpacity style={styles.addButton} onPress={() => router.push('../screens/stock/add')}>
-//           <Text style={{ color: '#fff', fontWeight: 'bold' }}>+ Add Stock</Text>
+//      {/* ✅ Main Add Stock Button */}
+//       <View style={styles.actionsWrapper}>
+//         <TouchableOpacity
+//           activeOpacity={0.9}
+//           onPress={() => router.push("/screens/stock/add")}
+//         >
+//           <LinearGradient
+//             colors={["#1c4f1f", "#47a04b"]}
+//             start={{ x: 0, y: 0 }}
+//             end={{ x: 1, y: 1 }}
+//             style={styles.addStockButton}
+//           >
+//             <Text style={styles.addStockText}>+ Add Stock</Text>
+//           </LinearGradient>
 //         </TouchableOpacity>
 //       </View>
-      
-//       <FlatList
-//         data={items}
-//         keyExtractor={(item) => item.id}
-//         renderItem={renderItem}
-//         ListHeaderComponent={renderHeader}
-//         ListEmptyComponent={<Text>No stock items available</Text>}
-//         contentContainerStyle={{ paddingBottom: 100 }}
-//       />
+
+//       {/* ✅ Secondary Stock Tools */}
+//       <View style={[styles.stockToolsRow, styles.actionsWrapper]}>
+//         {/* LOW STOCK */}
+//         <TouchableOpacity
+//           activeOpacity={0.9}
+//           style={{ flex: 1 }}
+//           onPress={() => router.push("/screens/ReorderListScreen")}
+//         >
+//           <LinearGradient
+//             colors={["#2563eb", "#1d4ed8"]}
+//             start={{ x: 0, y: 0 }}
+//             end={{ x: 1, y: 1 }}
+//             style={styles.toolGradientButton}
+//           >
+//             <Text style={styles.toolIcon}>⚠️</Text>
+//             <Text style={styles.toolGradientText}>Low Stock</Text>
+//           </LinearGradient>
+//         </TouchableOpacity>
+
+//         {/* STOCK COUNT */}
+//         <TouchableOpacity
+//           activeOpacity={0.9}
+//           style={{ flex: 1 }}
+//           onPress={() => router.push("/screens/StockTakeSessionScreen")}
+//         >
+//           <LinearGradient
+//             colors={["#0f766e", "#14b8a6"]}
+//             start={{ x: 0, y: 0 }}
+//             end={{ x: 1, y: 1 }}
+//             style={styles.toolGradientButton}
+//           >
+//             <Text style={styles.toolIcon}>📦</Text>
+//             <Text style={styles.toolGradientText}>Stock Count</Text>
+//           </LinearGradient>
+//         </TouchableOpacity>
+//       </View>
+
+//       {/* 🔍 Search Bar */}
+//       <View style={[styles.searchContainer]}>
+//         <TextInput
+//           placeholder="Search by name or category..."
+//           placeholderTextColor={colorScheme === "dark" ? "#aaa" : "#666"}
+//           value={searchQuery}
+//           onChangeText={handleSearch}
+//           style={[
+//             styles.searchInput,
+//             { color: textColor, backgroundColor: inputBg },
+//           ]}
+//         />
+//       </View>
+
+//       {/* ✅ Stock List */}
+//       <View style={[styles.container]}>
+//         <FlatList
+//           data={filteredItems}
+//           keyExtractor={(item) => item.id}
+//           renderItem={renderItem}
+//           ListEmptyComponent={
+//             <Text
+//               style={{
+//                 textAlign: "center",
+//                 color: textColor,
+//                 marginTop: 30,
+//                 fontSize: 16,
+//               }}
+//             >
+//               No matching stock items found.
+//             </Text>
+//           }
+//           contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 15 }}
+//         />
+//       </View>
 //     </ScreenWrapper>
+    
 //   );
 // }
 
 // const styles = StyleSheet.create({
-//   row: {
-//     flexDirection: 'row',
-//     paddingVertical: 12,
-//     borderBottomWidth: 1,
-//     borderColor: '#eee',
-//     alignItems: 'center',
+//   gradient: { flex: 1 },
+//   headerContainer: {
+//     paddingVertical: 20,
+//     alignItems: "center",
+//     justifyContent: "center",
+//     borderBottomLeftRadius: 20,
+//     borderBottomRightRadius: 20,
+//     elevation: 5,
 //   },
-//   cell: {
-//     fontSize: 16,
-//     paddingHorizontal: 2,
-//     textAlign: 'left',
+//   headerTitle: {
+//     color: "#fff",
+//     fontSize: 20,
+//     fontWeight: "700",
+//     textTransform: "uppercase",
 //   },
-//   header: {
-//     backgroundColor: '#f7f7f7',
-//     borderBottomWidth: 2,
-//     borderColor: '#ccc',
-//     paddingVertical: 10,
+//   container: {
+//     flex: 1,
+//     paddingTop: 5,
 //   },
-//   headerCell: {
-//     fontWeight: 'bold',
-//   },
-//   // addButton: {
-//   //   backgroundColor: '#007bff',
-//   //   paddingVertical: 12,
-//   //   paddingHorizontal: 20,
-//   //   borderRadius: 6,
-//   //   alignItems: 'center',
-//   //   marginTop: 16,
+//   // searchContainer: {
+//   //   padding: 10,
+//   //   borderBottomWidth: 1,
+//   //   borderColor: "#ddd",
 //   // },
-//   addButtonText: {
-//     color: '#fff',
-//     fontSize: 16,
+//   // searchInput: {
+//   //   borderRadius: 8,
+//   //   padding: 10,
+//   //   fontSize: 16,
+//   //   borderWidth: 1,
+//   //   borderColor: "#ccc",
+//   // },
+//   cardShadow: {
+//     shadowColor: "#000",
+//     shadowOpacity: 0.1,
+//     shadowOffset: { width: 0, height: 3 },
+//     shadowRadius: 6,
+//     elevation: 4,
+//     marginVertical: 8,
 //   },
-//   addButton: {
-//     backgroundColor: '#4CAF50',
-//     borderRadius: 30,
+//   card: {
+//     borderRadius: 10,
+//     padding: 15,
+//   },
+//   cardHeader: {
+//     flexDirection: "row",
+//     justifyContent: "space-between",
+//     marginBottom: 6,
+//   },
+//   cardTitle: {
+//     fontSize: 18,
+//     fontWeight: "700",
+//   },
+//   cardRow: {
+//     flexDirection: "row",
+//     alignItems: "center",
+//     marginVertical: 3,
+//   },
+//   cardLabel: {
+//     fontSize: 15,
+//     fontWeight: "600",
+//     width: 110,
+//   },
+//   cardValue: {
+//     fontSize: 15,
+//   },
+//   actionsWrapper: {
+//     paddingHorizontal: 16,
+//     paddingTop: 14,
+//     paddingBottom: 10,
+//   },
+
+//   addStockButton: {
+//     paddingVertical: 18,
+//     alignItems: "center",
+//     justifyContent: "center",
+//     borderRadius: 18,
+//     elevation: 5,
+//     shadowColor: "#000",
+//     shadowOpacity: 0.18,
+//     shadowOffset: { width: 0, height: 4 },
+//     shadowRadius: 8,
+//   },
+
+//   addStockText: {
+//     color: "#fff",
+//     fontSize: 21,
+//     fontWeight: "800",
+//     textTransform: "uppercase",
+//     letterSpacing: 0.5,
+//   },
+
+//   stockToolsRow: {
+//     flexDirection: "row",
+//     gap: 12,
+//     marginTop: 12,
+//   },
+
+//   toolButton: {
+//     flex: 1,
+//     backgroundColor: "rgba(255,255,255,0.12)",
+//     borderWidth: 1,
+//     borderColor: "rgba(255,255,255,0.22)",
+//     paddingVertical: 14,
+//     borderRadius: 16,
+//     alignItems: "center",
+//     justifyContent: "center",
+//   },
+
+//   toolIcon: {
+//     fontSize: 22,
+//     marginBottom: 4,
+//   },
+
+//   toolText: {
+//     color: "#fff",
+//     fontSize: 15,
+//     fontWeight: "800",
+//   },
+//   searchContainer: {
+//     paddingHorizontal: 16,
+//     paddingTop: 10,
+//     paddingBottom: 12,
+//     borderBottomWidth: 1,
+//     borderColor: "rgba(255,255,255,0.18)",
+//   },
+
+//   searchInput: {
+//     borderRadius: 14,
+//     paddingHorizontal: 14,
+//     paddingVertical: 12,
+//     fontSize: 16,
+//     borderWidth: 1,
+//     borderColor: "#d1d5db",
+//   },
+//   toolGradientButton: {
 //     paddingVertical: 10,
-//     paddingHorizontal: 20,
-//     alignSelf: 'flex-end',
-//    margin: 10,
-//   }
+//     borderRadius: 16,
+//     alignItems: "center",
+//     justifyContent: "center",
+//     elevation: 4,
+//     shadowColor: "#000",
+//     shadowOpacity: 0.15,
+//     shadowOffset: { width: 0, height: 3 },
+//     shadowRadius: 6,
+//   },
+
+//   toolGradientText: {
+//     color: "#fff",
+//     fontSize: 15,
+//     fontWeight: "800",
+//     marginTop: 4,
+//   },
 // });
 
 import ScreenWrapper from "@/components/ScreenWrapper";
@@ -418,69 +411,100 @@ import {
   getReturnItems,
   getStockItems,
   StockItem,
+  updateStockItem,
 } from "../../lib/storage";
 
-type StockWithReturns = StockItem & { totalReturned: number };
+type StockWithReturns = StockItem & {
+  totalReturned: number;
+  paid?: boolean;
+};
+
+type PaymentFilter = "All" | "Paid" | "Credit";
 
 export default function StockItemsScreen() {
   const [items, setItems] = useState<StockWithReturns[]>([]);
   const [filteredItems, setFilteredItems] = useState<StockWithReturns[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState<PaymentFilter>("All");
+
   const router = useRouter();
   const colorScheme = useColorScheme();
+
   const textColor = colorScheme === "dark" ? "#fff" : "#000";
-  const bgColor = colorScheme === "dark" ? "#121212" : "#f5f5f5";
   const cardColor = colorScheme === "dark" ? "#1e1e1e" : "#fff";
   const inputBg = colorScheme === "dark" ? "#1c1c1c" : "#fff";
 
-  // 🔄 Load Stock + Returns
+  const filterOptions: PaymentFilter[] = ["All", "Paid", "Credit"];
+
   useFocusEffect(
     useCallback(() => {
-      const loadItems = async () => {
-        try {
-          const allStock = await getStockItems();
-          const allReturns = await getReturnItems();
-
-          const stockWithReturns: StockWithReturns[] = allStock.map((s) => {
-            const totalReturned = allReturns
-              .filter((r) => r.stockItemId === s.id)
-              .reduce((sum, r) => sum + r.quantity, 0);
-            return { ...s, totalReturned };
-          });
-
-          setItems(stockWithReturns);
-          setFilteredItems(stockWithReturns);
-        } catch (error) {
-          Alert.alert("Error", "Failed to load stock items.");
-        }
-      };
       loadItems();
     }, [])
   );
 
-  // 🔍 Filter by Name or Category
-  const handleSearch = (text: string) => {
-    setSearchQuery(text);
-    if (!text.trim()) {
-      setFilteredItems(items);
-      return;
-    }
+  const loadItems = async () => {
+    try {
+      const allStock = await getStockItems();
+      const allReturns = await getReturnItems();
 
-    const lower = text.toLowerCase();
-    const filtered = items.filter(
+      const stockWithReturns: StockWithReturns[] = allStock.map((s) => {
+        const totalReturned = allReturns
+          .filter((r) => r.stockItemId === s.id)
+          .reduce((sum, r) => sum + Number(r.quantity || 0), 0);
+
+        return {
+          ...s,
+          totalReturned,
+          paid: s.paid ?? true,
+        };
+      });
+
+      setItems(stockWithReturns);
+      applyFilters(stockWithReturns, searchQuery, activeFilter);
+    } catch (error) {
+      Alert.alert("Error", "Failed to load stock items.");
+    }
+  };
+
+  const applyFilters = (
+    baseItems: StockWithReturns[],
+    query: string,
+    filter: PaymentFilter
+  ) => {
+    const lower = query.toLowerCase();
+
+    let filtered = baseItems.filter(
       (item) =>
         item.name.toLowerCase().includes(lower) ||
-        item.category.toLowerCase().includes(lower)
+        item.category.toLowerCase().includes(lower) ||
+        String(item.supplierName || "").toLowerCase().includes(lower)
     );
+
+    if (filter === "Paid") {
+      filtered = filtered.filter((item) => item.paid === true);
+    }
+
+    if (filter === "Credit") {
+      filtered = filtered.filter((item) => item.paid === false);
+    }
+
     setFilteredItems(filtered);
   };
 
-  // 🧭 Navigate to Edit Screen
+  const handleSearch = (text: string) => {
+    setSearchQuery(text);
+    applyFilters(items, text, activeFilter);
+  };
+
+  const handleFilterPress = (filter: PaymentFilter) => {
+    setActiveFilter(filter);
+    applyFilters(items, searchQuery, filter);
+  };
+
   const handleEdit = (id: string) => {
     router.push(`/screens/stock/${id}`);
   };
 
-  // 🗑️ Delete Item
   const handleDelete = async (id: string) => {
     Alert.alert("Delete Stock", "Are you sure you want to delete this item?", [
       { text: "Cancel", style: "cancel" },
@@ -491,77 +515,181 @@ export default function StockItemsScreen() {
           await deleteStockItem(id);
           const updated = items.filter((i) => i.id !== id);
           setItems(updated);
-          setFilteredItems(updated);
+          applyFilters(updated, searchQuery, activeFilter);
         },
       },
     ]);
   };
 
-  // ✅ Render Each Stock Card
-  const renderItem = ({ item }: { item: StockWithReturns }) => (
-    <TouchableOpacity
-      onPress={() => handleEdit(item.id)}
-      activeOpacity={0.9}
-      style={styles.cardShadow}
-    >
-      <View style={[styles.card, { backgroundColor: cardColor }]}>
-        <View style={styles.cardHeader}>
-          <Text style={[styles.cardTitle, { color: textColor }]}>{item.name}</Text>
-          <TouchableOpacity onPress={() => handleDelete(item.id)}>
-            <Text style={{ color: "#d9534f", fontWeight: "700" }}>✕</Text>
-          </TouchableOpacity>
-        </View>
+  const handleTogglePaid = async (item: StockWithReturns) => {
+    Alert.alert(
+      "Update Payment Status",
+      item.paid
+        ? "Mark this stock item as Credit?"
+        : "Mark this stock item as Paid?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Confirm",
+          onPress: async () => {
+            await updateStockItem(item.id, {
+              quantity: item.quantity,
+              category: item.category,
+              barcode: item.barcode || "",
+              unit: item.unit || "pcs",
+              costPrice: item.costPrice,
+              lowStockAlert: item.lowStockAlert || 0,
+              idealStockLevel: item.idealStockLevel || 0,
+              supplierName: item.supplierName || "",
+              paid: !item.paid,
+            });
 
-        <View style={styles.cardRow}>
-          <Text style={[styles.cardLabel, { color: textColor }]}>📦 Category:</Text>
-          <Text style={[styles.cardValue, { color: textColor }]}>
-            {item.category || "N/A"}
-          </Text>
-        </View>
+            await loadItems();
+          },
+        },
+      ]
+    );
+  };
 
-        <View style={styles.cardRow}>
-          <Text style={[styles.cardLabel, { color: textColor }]}>📊 Quantity:</Text>
-          <Text style={[styles.cardValue, { color: textColor }]}>{item.quantity}</Text>
-        </View>
+  const renderItem = ({ item }: { item: StockWithReturns }) => {
+    const isPaid = item.paid ?? true;
 
-        <View style={styles.cardRow}>
-          <Text style={[styles.cardLabel, { color: textColor }]}>↩️ Returns:</Text>
-          <Text
-            style={[
-              styles.cardValue,
-              { color: item.totalReturned > 0 ? "#E67E22" : textColor },
-            ]}
-          >
-            {item.totalReturned}
-          </Text>
+    return (
+      <TouchableOpacity
+        onPress={() => handleEdit(item.id)}
+        activeOpacity={0.9}
+        style={styles.cardShadow}
+      >
+        <View style={[styles.card, { backgroundColor: cardColor }]}>
+          <View style={styles.cardHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.cardTitle, { color: textColor }]}>
+                {item.name}
+              </Text>
+
+              <TouchableOpacity
+                onPress={() => handleTogglePaid(item)}
+                activeOpacity={0.8}
+              >
+                <Text
+                  style={[
+                    styles.paymentBadge,
+                    { backgroundColor: isPaid ? "#4CAF50" : "#F44336" },
+                  ]}
+                >
+                  {isPaid ? "Paid" : "Credit"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity onPress={() => handleDelete(item.id)}>
+              <Text style={{ color: "#d9534f", fontWeight: "700" }}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.cardRow}>
+            <Text style={[styles.cardLabel, { color: textColor }]}>
+              📦 Category:
+            </Text>
+            <Text style={[styles.cardValue, { color: textColor }]}>
+              {item.category || "N/A"}
+            </Text>
+          </View>
+
+          <View style={styles.cardRow}>
+            <Text style={[styles.cardLabel, { color: textColor }]}>
+              📊 Quantity:
+            </Text>
+            <Text style={[styles.cardValue, { color: textColor }]}>
+              {item.quantity} {item.unit || "units"}
+            </Text>
+          </View>
+
+          <View style={styles.cardRow}>
+            <Text style={[styles.cardLabel, { color: textColor }]}>
+              🏷️ Supplier:
+            </Text>
+            <Text style={[styles.cardValue, { color: textColor }]}>
+              {item.supplierName || "N/A"}
+            </Text>
+          </View>
+
+          <View style={styles.cardRow}>
+            <Text style={[styles.cardLabel, { color: textColor }]}>
+              ↩️ Returns:
+            </Text>
+            <Text
+              style={[
+                styles.cardValue,
+                { color: item.totalReturned > 0 ? "#E67E22" : textColor },
+              ]}
+            >
+              {item.totalReturned}
+            </Text>
+          </View>
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
-    
     <ScreenWrapper>
-      <LinearGradient colors={["#0d1b2a", "#1b263b", "#415a77"]} style={styles.gradient}>
-      {/* ✅ Gradient Header → Add Stock Button */}
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onPress={() => router.push("/screens/stock/add")}
-      >
-        <LinearGradient
-          colors={["#1c4f1fff", "#479d4bff"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.headerContainer}
+      <View style={styles.actionsWrapper}>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => router.push("/screens/stock/add")}
         >
-          <Text style={styles.headerTitle}>+ Add Stock</Text>
-        </LinearGradient>
-      </TouchableOpacity>
+          <LinearGradient
+            colors={["#1c4f1f", "#47a04b"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.addStockButton}
+          >
+            <Text style={styles.addStockText}>+ Add Stock</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
 
-      {/* 🔍 Search Bar */}
-      <View style={[styles.searchContainer]}>
+      <View style={[styles.stockToolsRow, styles.actionsWrapper]}>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={{ flex: 1 }}
+          onPress={() => router.push("/screens/ReorderListScreen")}
+        >
+          <LinearGradient
+            colors={["#2563eb", "#1d4ed8"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.toolGradientButton}
+          >
+            <Text style={styles.toolIcon}>⚠️</Text>
+            <Text style={styles.toolGradientText}>Low Stock</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          activeOpacity={0.9}
+          style={{ flex: 1 }}
+          onPress={() => router.push("/screens/StockTakeSessionScreen")}
+        >
+          <LinearGradient
+            colors={["#0f766e", "#14b8a6"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.toolGradientButton}
+          >
+            <Text style={styles.toolIcon}>📦</Text>
+            <Text style={styles.toolGradientText}>Stock Count</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.searchContainer}>
         <TextInput
-          placeholder="Search by name or category..."
+          placeholder="Search by name, category or supplier..."
           placeholderTextColor={colorScheme === "dark" ? "#aaa" : "#666"}
           value={searchQuery}
           onChangeText={handleSearch}
@@ -570,10 +698,31 @@ export default function StockItemsScreen() {
             { color: textColor, backgroundColor: inputBg },
           ]}
         />
+
+        <View style={styles.filterRow}>
+          {filterOptions.map((filter) => (
+            <TouchableOpacity
+              key={filter}
+              onPress={() => handleFilterPress(filter)}
+              style={[
+                styles.filterButton,
+                activeFilter === filter && styles.activeFilterButton,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.filterText,
+                  activeFilter === filter && styles.activeFilterText,
+                ]}
+              >
+                {filter}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
-      {/* ✅ Stock List */}
-      <View style={[styles.container]}>
+      <View style={styles.container}>
         <FlatList
           data={filteredItems}
           keyExtractor={(item) => item.id}
@@ -590,47 +739,22 @@ export default function StockItemsScreen() {
               No matching stock items found.
             </Text>
           }
-          contentContainerStyle={{ paddingBottom: 100, paddingHorizontal: 15 }}
+          contentContainerStyle={{
+            paddingBottom: 100,
+            paddingHorizontal: 15,
+          }}
         />
       </View>
-      </LinearGradient>
     </ScreenWrapper>
-    
   );
 }
 
 const styles = StyleSheet.create({
-  gradient: { flex: 1 },
-  headerContainer: {
-    paddingVertical: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    elevation: 5,
-  },
-  headerTitle: {
-    color: "#fff",
-    fontSize: 20,
-    fontWeight: "700",
-    textTransform: "uppercase",
-  },
   container: {
     flex: 1,
     paddingTop: 5,
   },
-  searchContainer: {
-    padding: 10,
-    borderBottomWidth: 1,
-    borderColor: "#ddd",
-  },
-  searchInput: {
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: "#ccc",
-  },
+
   cardShadow: {
     shadowColor: "#000",
     shadowOpacity: 0.1,
@@ -639,31 +763,153 @@ const styles = StyleSheet.create({
     elevation: 4,
     marginVertical: 8,
   },
+
   card: {
     borderRadius: 10,
     padding: 15,
   },
+
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 6,
+    marginBottom: 8,
   },
+
   cardTitle: {
     fontSize: 18,
     fontWeight: "700",
+    marginBottom: 6,
   },
+
+  paymentBadge: {
+    alignSelf: "flex-start",
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "900",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    overflow: "hidden",
+  },
+
   cardRow: {
     flexDirection: "row",
     alignItems: "center",
     marginVertical: 3,
   },
+
   cardLabel: {
     fontSize: 15,
     fontWeight: "600",
     width: 110,
   },
+
   cardValue: {
     fontSize: 15,
+    flex: 1,
+  },
+
+  actionsWrapper: {
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 10,
+  },
+
+  addStockButton: {
+    paddingVertical: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 18,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOpacity: 0.18,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
+  },
+
+  addStockText: {
+    color: "#fff",
+    fontSize: 21,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+
+  stockToolsRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 12,
+  },
+
+  toolIcon: {
+    fontSize: 22,
+    marginBottom: 4,
+  },
+
+  toolGradientButton: {
+    paddingVertical: 10,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
+  },
+
+  toolGradientText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "800",
+    marginTop: 4,
+  },
+
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+  },
+
+  searchInput: {
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+  },
+
+  filterRow: {
+    flexDirection: "row",
+    marginTop: 10,
+    backgroundColor: "rgba(0,0,0,0.08)",
+    borderRadius: 14,
+    padding: 4,
+    gap: 6,
+  },
+
+  filterButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+
+  activeFilterButton: {
+    backgroundColor: "#2563eb",
+  },
+
+  filterText: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#666",
+    textTransform: "uppercase",
+  },
+
+  activeFilterText: {
+    color: "#fff",
   },
 });
-

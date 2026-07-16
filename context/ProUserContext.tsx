@@ -1,263 +1,338 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { createContext, useContext, useEffect, useState } from "react";
-import Purchases, { CustomerInfo } from "react-native-purchases";
-
-type ProUserContextType = {
-  isProUser: boolean;
-  setIsProUser: (value: boolean) => void;
-  loading: boolean;
-  updateEntitlements: (customerInfo?: CustomerInfo) => Promise<void>;
-  refreshFromRevenueCat: () => Promise<void>; // 👈 new helper for AuthContext
-};
-
-const STORAGE_KEY = "isProUser_lastKnown";
-const ProUserContext = createContext<ProUserContextType | undefined>(undefined);
-
-export const ProUserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isProUser, setIsProUser] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  /**
-   * ✅ Core function: fetch + update entitlement state
-   */
-  const updateEntitlements = async (customerInfo?: CustomerInfo) => {
-    try {
-      const info = customerInfo || (await Purchases.getCustomerInfo());
-      const hasPro = !!info.entitlements.active["Pro"]; // case-sensitive key
-      setIsProUser(hasPro);
-      cachedIsPro = hasPro;
-
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(hasPro));
-      console.log("🔄 Entitlements updated:", hasPro ? "Pro active" : "No Pro");
-    } catch (err) {
-      console.warn("⚠️ Failed to update entitlements:", err);
-    }
-  };
-
-  /**
-   * ✅ Manually force refresh (called from AuthContext after logIn/logOut)
-   */
-  const refreshFromRevenueCat = async () => {
-    console.log("🔁 Manually refreshing entitlements after user change...");
-    await updateEntitlements();
-  };
-
-  /**
-   * ✅ Initialize listener & first load
-   */
-  useEffect(() => {
-    const initEntitlements = async () => {
-      try {
-        console.log("🚀 Checking RevenueCat entitlements...");
-        const customerInfo = await Purchases.getCustomerInfo();
-        await updateEntitlements(customerInfo);
-
-        // Auto-update whenever RevenueCat broadcasts customer info changes
-        const unsubscribe = Purchases.addCustomerInfoUpdateListener(updateEntitlements);
-
-        return () => unsubscribe();
-      } catch (error: any) {
-        console.warn("⚠️ RevenueCat entitlement fetch failed:", error?.message);
-
-        // fallback to cached state
-        const cached = await AsyncStorage.getItem(STORAGE_KEY);
-        if (cached !== null) {
-          const parsed = JSON.parse(cached);
-          setIsProUser(parsed);
-          cachedIsPro = parsed;
-          console.log("💾 Loaded Pro state from cache:", parsed);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initEntitlements();
-  }, []);
-
-  return (
-    <ProUserContext.Provider
-      value={{ isProUser, setIsProUser, loading, updateEntitlements, refreshFromRevenueCat }}
-    >
-      {children}
-    </ProUserContext.Provider>
-  );
-};
-
-/**
- * ✅ Hook for React components
- */
-export const useProUser = () => {
-  const ctx = useContext(ProUserContext);
-  if (!ctx) throw new Error("useProUser must be used within ProUserProvider");
-  return ctx;
-};
-
-/**
- * ✅ Helper for non-React files (reads cached Pro status)
- */
-let cachedIsPro: boolean | null = null;
-export async function getProUserStatus(): Promise<boolean> {
-  try {
-    if (cachedIsPro !== null) return cachedIsPro;
-    const value = await AsyncStorage.getItem(STORAGE_KEY);
-    cachedIsPro = value ? JSON.parse(value) : false;
-    return cachedIsPro ?? false;
-  } catch {
-    return false;
-  }
-}
-
-
 // import AsyncStorage from "@react-native-async-storage/async-storage";
 // import React, { createContext, useContext, useEffect, useState } from "react";
 // import Purchases, { CustomerInfo } from "react-native-purchases";
+// import { useAuth } from "./AuthContext";
 
 // type ProUserContextType = {
 //   isProUser: boolean;
-//   setIsProUser: (value: boolean) => void;
+//   setIsProUser: (value: boolean) => Promise<void>;
 //   loading: boolean;
 //   updateEntitlements: (customerInfo?: CustomerInfo) => Promise<void>;
+//   refreshFromRevenueCat: () => Promise<void>;
 // };
 
 // const STORAGE_KEY = "isProUser_lastKnown";
+
 // const ProUserContext = createContext<ProUserContextType | undefined>(undefined);
 
-// export const ProUserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-//   const [isProUser, setIsProUser] = useState(false);
+// let cachedIsPro: boolean | null = null;
+
+// export const ProUserProvider: React.FC<{ children: React.ReactNode }> = ({
+//   children,
+//   }) => {
+//   const { authLoading } = useAuth();
+
+//   const [isProUser, setIsProUserState] = useState(false);
 //   const [loading, setLoading] = useState(true);
 
-//   /**
-//    * ✅ Updates entitlement state after purchase or restore
-//    */
+//   const setIsProUser = async (value: boolean) => {
+//     setIsProUserState(value);
+//     cachedIsPro = value;
+//     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+//   };
+
 //   const updateEntitlements = async (customerInfo?: CustomerInfo) => {
 //     try {
 //       const info = customerInfo || (await Purchases.getCustomerInfo());
-//       const hasPro = !!info.entitlements.active["Pro"]; // 👈 Case-sensitive key
-//       setIsProUser(hasPro);
-//       cachedIsPro = hasPro;
 
-//       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(hasPro));
+//       // const hasPro = !!info.entitlements.active["Pro"];
+//       const hasPro =
+//         !!info.entitlements.active["pro"] ||
+//         !!info.entitlements.active["Pro"];
+      
+//         console.log("📦 Active entitlements:", Object.keys(info.entitlements.active));
+//         console.log("👤 RevenueCat appUserID:", info.originalAppUserId);
+
+//       await setIsProUser(hasPro);
+
 //       console.log("🔄 Entitlements updated:", hasPro ? "Pro active" : "No Pro");
 //     } catch (err) {
 //       console.warn("⚠️ Failed to update entitlements:", err);
 //     }
 //   };
 
-//   /**
-//    * ✅ Initialize and sync entitlements after early RevenueCat config
-//    */
-//   useEffect(() => {
-//     const initEntitlements = async () => {
-//       try {
-//         console.log("🚀 Checking RevenueCat entitlements...");
-//         const customerInfo = await Purchases.getCustomerInfo();
-//         await updateEntitlements(customerInfo);
-
-//         const unsubscribe = Purchases.addCustomerInfoUpdateListener(updateEntitlements);
-//         return () => unsubscribe();
-//       } catch (error) {
-//         console.warn("⚠️ RevenueCat entitlement fetch failed:", error?.message);
-
-//         // fallback to cached state
-//         const cached = await AsyncStorage.getItem(STORAGE_KEY);
-//         if (cached !== null) {
-//           setIsProUser(JSON.parse(cached));
-//           console.log("💾 Loaded Pro state from cache:", cached);
-//         }
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
-
-//     initEntitlements();
-//   }, []);
-
-//   return (
-//     <ProUserContext.Provider value={{ isProUser, setIsProUser, loading, updateEntitlements }}>
-//       {children}
-//     </ProUserContext.Provider>
-//   );
-// };
-
-// /**
-//  * ✅ Hook for React components
-//  */
-// export const useProUser = () => {
-//   const ctx = useContext(ProUserContext);
-//   if (!ctx) throw new Error("useProUser must be used within ProUserProvider");
-//   return ctx;
-// };
-
-// /**
-//  * ✅ Helper for non-React files (reads cached Pro status)
-//  */
-// let cachedIsPro: boolean | null = null;
-// export async function getProUserStatus(): Promise<boolean> {
-//   try {
-//     if (cachedIsPro !== null) return cachedIsPro;
-//     const value = await AsyncStorage.getItem(STORAGE_KEY);
-//     cachedIsPro = value ? JSON.parse(value) : false;
-//     return cachedIsPro ?? false;
-//   } catch {
-//     return false;
-//   }
-// }
-
-// import React, { createContext, useContext, useEffect, useState } from "react";
-// import Purchases, { CustomerInfo } from "react-native-purchases";
-
-// interface ProUserContextType {
-//   isProUser: boolean;
-//   updateEntitlements: (info?: CustomerInfo) => Promise<void>;
-// }
-
-// const ProUserContext = createContext<ProUserContextType>({
-//   isProUser: false,
-//   updateEntitlements: async () => {},
-// });
-// // const ProUserContext = createContext<ProUserContextType | undefined>(undefined);
-
-
-// export const ProUserProvider = ({ children }: { children: React.ReactNode }) => {
-//   const [isProUser, setIsProUser] = useState(false);
-
-//   const updateEntitlements = async (info?: CustomerInfo) => {
+//   const refreshFromRevenueCat = async () => {
 //     try {
-//       const customerInfo = info ?? (await Purchases.getCustomerInfo());
-//       const active = customerInfo.entitlements.active;
-//       const pro = !!active["Pro"];
-//       console.log("🔄 Entitlements:", pro ? "Pro User" : "Free User");
-//       setIsProUser(pro);
-//     } catch (err) {
-//       console.warn("⚠️ Error updating entitlements:", err);
+//       setLoading(true);
+//       console.log("🔁 Refreshing entitlements from RevenueCat...");
+//       await updateEntitlements();
+//     } finally {
+//       setLoading(false);
 //     }
 //   };
 
 //   useEffect(() => {
 //     let unsubscribe: (() => void) | undefined;
+//     let cancelled = false;
 
-//     const init = async () => {
-//       await updateEntitlements();
+//     const initEntitlements = async () => {
+//       try {
+//         if (authLoading) {
+//           console.log("⏳ Auth still loading — delaying Pro entitlement check...");
+//           return;
+//         }
 
-//       // 👇 Listen to RevenueCat updates
-//       const listener = (info: CustomerInfo) => updateEntitlements(info);
-//       unsubscribe = Purchases.addCustomerInfoUpdateListener(listener);
+//         setLoading(true);
+
+//         console.log("🚀 Checking RevenueCat entitlements...");
+
+//         const customerInfo = await Purchases.getCustomerInfo();
+
+//         if (cancelled) return;
+
+//         await updateEntitlements(customerInfo);
+
+//         Purchases.addCustomerInfoUpdateListener(
+//           async (customerInfo) => {
+//             if (!cancelled) {
+//               await updateEntitlements(customerInfo);
+//             }
+//           }
+//         );
+//         unsubscribe = () => {
+//           // RevenueCat listener cleanup handled by cancelled flag
+//         };
+//       } catch (error: any) {
+//         console.warn("⚠️ RevenueCat entitlement fetch failed:", error?.message);
+
+//         const cached = await AsyncStorage.getItem(STORAGE_KEY);
+
+//         if (cached !== null) {
+//           const parsed = JSON.parse(cached);
+//           await setIsProUser(parsed);
+//           console.log("💾 Loaded Pro state from cache:", parsed);
+//         }
+//       } finally {
+//         if (!cancelled) {
+//           setLoading(false);
+//         }
+//       }
 //     };
 
-//     init();
+//     initEntitlements();
 
-//     // ✅ Clean-up safely
 //     return () => {
-//       if (typeof unsubscribe === "function") unsubscribe();
+//       cancelled = true;
+
+//       if (unsubscribe) {
+//         unsubscribe();
+//       }
 //     };
-//   }, []);
+//   }, [authLoading]);
 
 //   return (
-//     <ProUserContext.Provider value={{ isProUser, updateEntitlements }}>
+//     <ProUserContext.Provider
+//       value={{
+//         isProUser,
+//         setIsProUser,
+//         loading,
+//         updateEntitlements,
+//         refreshFromRevenueCat,
+//       }}
+//     >
 //       {children}
 //     </ProUserContext.Provider>
 //   );
 // };
 
-// export const useProUser = () => useContext(ProUserContext);
+// export const useProUser = () => {
+//   const ctx = useContext(ProUserContext);
+
+//   if (!ctx) {
+//     throw new Error("useProUser must be used within ProUserProvider");
+//   }
+
+//   return ctx;
+// };
+
+// export async function getProUserStatus(): Promise<boolean> {
+//   try {
+//     if (cachedIsPro !== null) return cachedIsPro;
+
+//     const value = await AsyncStorage.getItem(STORAGE_KEY);
+
+//     cachedIsPro = value ? JSON.parse(value) : false;
+
+//     return cachedIsPro ?? false;
+//   } catch {
+//     return false;
+//   }
+// }
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import Purchases, { CustomerInfo } from "react-native-purchases";
+import { useAuth } from "./AuthContext";
+
+type ProUserContextType = {
+  isProUser: boolean;
+  setIsProUser: (value: boolean) => Promise<void>;
+  loading: boolean;
+  updateEntitlements: (customerInfo?: CustomerInfo) => Promise<void>;
+  refreshFromRevenueCat: () => Promise<void>;
+};
+
+const BASE_STORAGE_KEY = "isProUser_lastKnown";
+const ProUserContext = createContext<ProUserContextType | undefined>(undefined);
+
+let cachedIsPro: boolean | null = null;
+
+const hasProEntitlement = (info: CustomerInfo): boolean => {
+  return !!info.entitlements.active["Pro"] || !!info.entitlements.active["pro"];
+};
+
+export const ProUserProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const { user, authLoading } = useAuth();
+
+  const [isProUser, setIsProUserState] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const storageKey = useMemo(() => {
+    return user?.$id
+      ? `${BASE_STORAGE_KEY}_${user.$id}`
+      : `${BASE_STORAGE_KEY}_guest`;
+  }, [user?.$id]);
+
+  const setIsProUser = async (value: boolean) => {
+    setIsProUserState(value);
+    cachedIsPro = value;
+    await AsyncStorage.setItem(storageKey, JSON.stringify(value));
+  };
+
+  const updateEntitlements = async (customerInfo?: CustomerInfo) => {
+    try {
+      const info = customerInfo || (await Purchases.getCustomerInfo());
+
+      const activeEntitlements = Object.keys(info.entitlements.active);
+      const hasPro = hasProEntitlement(info);
+
+      console.log("📦 Active entitlements:", activeEntitlements);
+      console.log("👤 RevenueCat appUserID:", info.originalAppUserId);
+
+      await setIsProUser(hasPro);
+
+      console.log("🔄 Entitlements updated:", hasPro ? "Pro active" : "No Pro");
+    } catch (err) {
+      console.warn("⚠️ Failed to update entitlements:", err);
+      await setIsProUser(false);
+    }
+  };
+
+  const refreshFromRevenueCat = async () => {
+    try {
+      setLoading(true);
+      console.log("🔁 Refreshing entitlements from RevenueCat...");
+      await updateEntitlements();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (authLoading) {
+      console.log("⏳ Auth still loading — delaying Pro entitlement check...");
+      return;
+    }
+
+    let cancelled = false;
+
+    const listener = async (customerInfo: CustomerInfo) => {
+      if (!cancelled) {
+        await updateEntitlements(customerInfo);
+      }
+    };
+
+    const initEntitlements = async () => {
+      try {
+        setLoading(true);
+
+        // ✅ Prevent old user's cached Pro state from leaking into new user
+        setIsProUserState(false);
+        cachedIsPro = false;
+
+        console.log("🚀 Checking RevenueCat entitlements...");
+
+        const customerInfo = await Purchases.getCustomerInfo();
+
+        if (cancelled) return;
+
+        await updateEntitlements(customerInfo);
+
+        Purchases.addCustomerInfoUpdateListener(listener);
+      } catch (error: any) {
+        console.warn("⚠️ RevenueCat entitlement fetch failed:", error?.message);
+
+        const cached = await AsyncStorage.getItem(storageKey);
+
+        if (cached !== null) {
+          const parsed = JSON.parse(cached);
+          setIsProUserState(parsed);
+          cachedIsPro = parsed;
+          console.log("💾 Loaded Pro state from cache:", parsed);
+        } else {
+          setIsProUserState(false);
+          cachedIsPro = false;
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    initEntitlements();
+
+    return () => {
+      cancelled = true;
+
+      try {
+        Purchases.removeCustomerInfoUpdateListener(listener);
+      } catch {
+        console.warn("⚠️ RevenueCat listener cleanup skipped");
+      }
+    };
+  }, [authLoading, user?.$id, storageKey]);
+
+  return (
+    <ProUserContext.Provider
+      value={{
+        isProUser,
+        setIsProUser,
+        loading,
+        updateEntitlements,
+        refreshFromRevenueCat,
+      }}
+    >
+      {children}
+    </ProUserContext.Provider>
+  );
+};
+
+export const useProUser = () => {
+  const ctx = useContext(ProUserContext);
+
+  if (!ctx) {
+    throw new Error("useProUser must be used within ProUserProvider");
+  }
+
+  return ctx;
+};
+
+export async function getProUserStatus(userId?: string | null): Promise<boolean> {
+  try {
+    if (cachedIsPro !== null) return cachedIsPro;
+
+    const key = userId
+      ? `${BASE_STORAGE_KEY}_${userId}`
+      : `${BASE_STORAGE_KEY}_guest`;
+
+    const value = await AsyncStorage.getItem(key);
+
+    cachedIsPro = value ? JSON.parse(value) : false;
+
+    return cachedIsPro ?? false;
+  } catch {
+    return false;
+  }
+}

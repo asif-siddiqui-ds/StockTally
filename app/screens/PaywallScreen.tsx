@@ -840,305 +840,382 @@
 
 // export default PaywallScreen;
 
-import { useProUser } from "@/context/ProUserContext";
-import { useRouter } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
-import React, { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Image,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import Purchases, {
-  PURCHASES_ERROR_CODE,
-  PurchasesPackage
-} from "react-native-purchases";
+// import { useAuth } from "@/context/AuthContext";
+// import { useProUser } from "@/context/ProUserContext";
+// import { useRouter } from "expo-router";
+// import * as WebBrowser from "expo-web-browser";
+// import React, { useEffect, useState } from "react";
+// import {
+//   ActivityIndicator,
+//   Alert,
+//   Image,
+//   Platform,
+//   SafeAreaView,
+//   ScrollView,
+//   StyleSheet,
+//   Text,
+//   TouchableOpacity,
+//   View,
+// } from "react-native";
+// import Purchases, {
+//   PURCHASES_ERROR_CODE,
+//   PurchasesPackage
+// } from "react-native-purchases";
+// import { checkProEntitlement } from "@/lib/revenuecat";
 
-const PaywallScreen: React.FC = () => {
-  const [packages, setPackages] = useState<PurchasesPackage[]>([]);
-  const [selectedPkg, setSelectedPkg] = useState<PurchasesPackage | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+// const PaywallScreen: React.FC = () => {
+//   const [packages, setPackages] = useState<PurchasesPackage[]>([]);
+//   const [selectedPkg, setSelectedPkg] = useState<PurchasesPackage | null>(null);
+//   const [loading, setLoading] = useState(true);
+//   const [error, setError] = useState<string | null>(null);
+//   const router = useRouter();
+//   const { updateEntitlements } = useProUser();
+//   const { user, authLoading } = useAuth();
 
-  const router = useRouter();
-  const { updateEntitlements } = useProUser();
+//   // ✅ Fetch offerings from RevenueCat
+//   useEffect(() => {
+//     const init = async () => {
+//       try {
+//         console.log("🟢 Loading RevenueCat offerings");
+//         const offerings = await Purchases.getOfferings();
+//         if (offerings.current?.availablePackages.length) {
+//           setPackages(offerings.current.availablePackages);
+//           setSelectedPkg(offerings.current.availablePackages[0]);
+//         } else {
+//           setError("No subscription packages available.");
+//         }
+//       } catch (err: any) {
+//         console.warn("⚠️ Error fetching offerings:", err);
+//         setError("Failed to fetch products. Try again later.");
+//       } finally {
+//         setLoading(false);
+//       }
+//     };
 
-  // ✅ Fetch offerings from RevenueCat
-  useEffect(() => {
-    const init = async () => {
-      try {
-        console.log("🟢 RevenueCat configured early");
-        const offerings = await Purchases.getOfferings();
-        if (offerings.current?.availablePackages.length) {
-          setPackages(offerings.current.availablePackages);
-          setSelectedPkg(offerings.current.availablePackages[0]);
-        } else {
-          setError("No subscription packages available.");
-        }
-      } catch (err: any) {
-        console.warn("⚠️ Error fetching offerings:", err);
-        setError("Failed to fetch products. Try again later.");
-      } finally {
-        setLoading(false);
-      }
-    };
+//     init();
 
-    init();
+//     Purchases.addCustomerInfoUpdateListener((info) => {
+//       updateEntitlements(info);
+//     });
 
-    Purchases.addCustomerInfoUpdateListener((info) => {
-      updateEntitlements(info);
-    });
-
-    // ✅ No manual cleanup required in v5
-    return () => {};
-  }, []);
-
-
-  // ✅ Handle subscription purchase
-  const handleContinue = async () => {
-    if (!selectedPkg) return;
-
-    try {
-      setLoading(true);
-      console.log(`INFO 💰 Purchasing Product '${selectedPkg.identifier}'`);
-
-      const { customerInfo } = await Purchases.purchasePackage(selectedPkg);
-      await updateEntitlements(customerInfo);
-      console.log("✅ Subscription completed & entitlements synced");
-      console.log(customerInfo);
+//     // ✅ No manual cleanup required in v5
+//     return () => {};
+//   }, []);
 
 
-      // Navigate to app home (or dashboard)
-      router.replace("/(tabs)");
-    } catch (err: any) {
-      if (
-        err.userCancelled ||
-        err.code === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR
-      ) {
-        console.log("🟡 Purchase cancelled by user");
-      } else {
-        console.warn("❌ Purchase error:", err);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+//   // ✅ Handle subscription purchase
+//   const handleContinue = async () => {
+//     if (!user?.$id) {
+//       Alert.alert(
+//         "Login required",
+//         "Please login or create an account before subscribing so your subscription and cloud data stay linked."
+//       );
+//       router.replace("/(auth)/LoginScreen");
+//       return;
+//     }
+//     if (!selectedPkg) return;
 
-  // ✅ Restore purchases (for reinstall / test)
-  const handleRestore = async () => {
-    try {
-      setLoading(true);
-      const info = await Purchases.restorePurchases();
-      await updateEntitlements(info);
-      console.log("🔄 Restored purchases & updated entitlements");
-      router.replace("/(tabs)");
-    } catch (err) {
-      console.warn("⚠️ Restore failed:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+//     try {
+//       setLoading(true);
+//       console.log(`INFO 💰 Purchasing Product '${selectedPkg.identifier}'`);
 
-  if (loading)
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#007AFF" />
-      </View>
-    );
+//       const { customerInfo } = await Purchases.purchasePackage(selectedPkg);
+//       await updateEntitlements(customerInfo);
+//       console.log("✅ Subscription completed & entitlements synced");
+//       console.log(customerInfo);
 
-  if (error)
-    return (
-      <View style={styles.center}>
-        <Text style={{ color: "red" }}>{error}</Text>
-      </View>
-    );
+
+//       // Navigate to app home (or dashboard)
+//       router.replace("/(tabs)");
+//     } catch (err: any) {
+//       if (
+//         err.userCancelled ||
+//         err.code === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR
+//       ) {
+//         console.log("🟡 Purchase cancelled by user");
+//       } else {
+//         console.warn("❌ Purchase error:", err);
+//       }
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   // ✅ Restore purchases (for reinstall / test)
+//   const handleRestore = async () => {
+//     try {
+//       setLoading(true);
+//       const info = await Purchases.restorePurchases();
+//       await updateEntitlements(info);
+//       console.log("🔄 Restored purchases & updated entitlements");
+//       router.replace("/(tabs)");
+//     } catch (err) {
+//       console.warn("⚠️ Restore failed:", err);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   if (loading)
+//     return (
+//       <View style={styles.center}>
+//         <ActivityIndicator size="large" color="#007AFF" />
+//       </View>
+//     );
+
+//   if (error)
+//     return (
+//       <View style={styles.center}>
+//         <Text style={{ color: "red" }}>{error}</Text>
+//       </View>
+//     );
     
-  return (
-    <View style={styles.container}>
+//   return (
+//     <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+//       <ScrollView
+//         contentContainerStyle={styles.scrollContent}
+//         showsVerticalScrollIndicator={false}
+//       >
+//         <Image
+//           source={require("../../assets/icon.png")}
+//           style={styles.logo}
+//           resizeMode="contain"
+//         />
 
-      <Image source={require("../../assets/icon.png")} style={styles.logo} />
+//         <Text style={styles.title}>
+//           Unlock all{"\n"}StockTally Pro features
+//         </Text>
 
-      <Text style={styles.title}>
-        Unlock all{"\n"}StockTally Pro features
-      </Text>
-      <Text style={styles.subtitle}>
-        🔒 Subscription unlocks dashboard analytics and unlimited access.
-      </Text>
+//         <Text style={styles.subtitle}>
+//           🔒 Subscription unlocks AI features, dashboard analytics and unlimited access.
+//         </Text>
 
-      {/* <View style={styles.featureList}>
-        <Text style={styles.feature}>• Dashboard Insights</Text>
-        <Text style={styles.feature}>• Unlimited Stock & Sales</Text>
-        <Text style={styles.feature}>• Cloud Data Backup</Text>
-      </View> */}
+//         <View style={styles.options}>
+//           {packages.map((pkg) => (
+//             <TouchableOpacity
+//               key={pkg.identifier}
+//               style={[
+//                 styles.option,
+//                 selectedPkg?.identifier === pkg.identifier && styles.optionSelected,
+//               ]}
+//               onPress={() => setSelectedPkg(pkg)}
+//             >
+//               <View style={styles.radioRow}>
+//                 <View
+//                   style={[
+//                     styles.radioOuter,
+//                     selectedPkg?.identifier === pkg.identifier &&
+//                       styles.radioOuterSelected,
+//                   ]}
+//                 >
+//                   {selectedPkg?.identifier === pkg.identifier && (
+//                     <View style={styles.radioInner} />
+//                   )}
+//                 </View>
 
-      {loading ? (
-        <ActivityIndicator size="large" color="#fff" />
-      ) : (
-        <View style={styles.options}>
-          {packages.map((pkg) => (
-            <TouchableOpacity
-              key={pkg.identifier}
-              style={[
-                styles.option,
-                selectedPkg?.identifier === pkg.identifier && styles.optionSelected,
-              ]}
-              onPress={() => setSelectedPkg(pkg)}
-            >
-              <View style={styles.radioRow}>
-                <View
-                  style={[
-                    styles.radioOuter,
-                    selectedPkg?.identifier === pkg.identifier &&
-                      styles.radioOuterSelected,
-                  ]}
-                >
-                  {selectedPkg?.identifier === pkg.identifier && (
-                    <View style={styles.radioInner} />
-                  )}
-                </View>
-                <Text style={styles.optionText}>
-                  {pkg.product.title}
-                </Text>
-                
+//                 <Text style={styles.optionText} numberOfLines={2}>
+//                   {pkg.product.title}
+//                 </Text>
+//               </View>
 
-              </View>
-              <Text style={styles.price}>{pkg.product.priceString}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
+//               <Text style={styles.price}>{pkg.product.priceString}</Text>
+//             </TouchableOpacity>
+//           ))}
+//         </View>
 
-      <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
-        <Text style={styles.continueText}>Subscribe Now</Text>
-      </TouchableOpacity>
+//         <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
+//           <Text style={styles.continueText}>Subscribe Now</Text>
+//         </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.push("/(tabs)")} style={{ marginTop: 20 }}>
-        <Text style={styles.cancelText}>Maybe Later</Text>
-      </TouchableOpacity>
+//         <TouchableOpacity onPress={() => router.push("/(tabs)")}>
+//           <Text style={styles.cancelText}>Maybe Later</Text>
+//         </TouchableOpacity>
 
-      <View style={styles.footer}>
-        <TouchableOpacity onPress={handleRestore}>
-          <Text style={styles.footerLink}>Restore Purchases</Text>
-        </TouchableOpacity>
-        <Text style={styles.footerDivider}> | </Text>
+//         <View style={styles.footer}>
+//           <TouchableOpacity onPress={handleRestore}>
+//             <Text style={styles.footerLink}>Restore</Text>
+//           </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() =>
-            WebBrowser.openBrowserAsync(
-              "https://asif-siddiqui-ds.github.io/StockTally/privacy.html"
-            )
-          }
-        >
-          <Text style={styles.footerLink}>Privacy</Text>
-        </TouchableOpacity>
-        <Text style={styles.footerDivider}> | </Text>
+//           <Text style={styles.footerDivider}> | </Text>
 
-        <TouchableOpacity
-          onPress={() =>
-            WebBrowser.openBrowserAsync(
-              Platform.OS === "ios"
-                ? "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
-                : "https://play.google.com/about/play-terms/"
-            )
-          }
-        >
-          <Text style={styles.footerLink}>Terms</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-};
+//           <TouchableOpacity
+//             onPress={() =>
+//               WebBrowser.openBrowserAsync(
+//                 "https://asif-siddiqui-ds.github.io/StockTally/privacy.html"
+//               )
+//             }
+//           >
+//             <Text style={styles.footerLink}>Privacy</Text>
+//           </TouchableOpacity>
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#122017", padding: 20 },
-  closeButton: { position: "absolute", top: 50, right: 20 },
-  closeText: { fontSize: 26, fontWeight: "bold", color: "#fff" },
-  logo: {
-    width: 440,
-    height: 240,
-    alignSelf: "center",
-    marginTop: 60,
-    marginBottom: 25,
-  },
-  title: {
-    fontSize: 25,
-    fontWeight: "bold",
-    color: "#fff",
-    textAlign: "center",
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#ccc",
-    textAlign: "center",
-    marginBottom: 15,
-    paddingHorizontal: 15,
-  },
-  featureList: { marginBottom: 20, paddingHorizontal: 10 },
-  feature: { fontSize: 14, color: "#ddd", marginBottom: 5 },
-  options: { width: "100%", marginTop: 10 },
-  option: {
-    borderWidth: 1,
-    borderColor: "#444",
-    borderRadius: 12,
-    padding: 15,
-    marginVertical: 8,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#1c2a20",
-  },
-  optionSelected: { borderColor: "#FF9500", backgroundColor: "#233323" },
-  radioRow: { flexDirection: "row", alignItems: "center" },
-  radioOuter: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: "#aaa",
-    marginRight: 10,
-  },
-  radioOuterSelected: { borderColor: "#FF9500" },
-  radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#FF9500",
-    alignSelf: "center",
-    marginTop: 3,
-  },
-  optionText: { fontSize: 16, fontWeight: "500", color: "#fff" },
-  price: { fontSize: 16, fontWeight: "600", color: "#ccc" },
-  continueButton: {
-    marginTop: 20,
-    backgroundColor: "#FF9500",
-    paddingVertical: 15,
-    borderRadius: 12,
-  },
-  continueText: {
-    fontSize: 18,
-    color: "#fff",
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-  footer: { flexDirection: "row", justifyContent: "center", marginTop: 50 },
-  footerLink: { color: "#FF9500", fontSize: 14 },
-  footerDivider: { color: "#777", marginHorizontal: 5 },
-  
-  optionDescription: {
-    color: "#aaa",
-    fontSize: 13,
-    marginTop: 4,
-  },
-  cancelText: { textAlign: "center", color: "#fff", fontSize: 16, marginTop: 10 },
+//           <Text style={styles.footerDivider}> | </Text>
 
-});
+//           <TouchableOpacity
+//             onPress={() =>
+//               WebBrowser.openBrowserAsync(
+//                 Platform.OS === "ios"
+//                   ? "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
+//                   : "https://play.google.com/about/play-terms/"
+//               )
+//             }
+//           >
+//             <Text style={styles.footerLink}>Terms</Text>
+//           </TouchableOpacity>
+//         </View>
+//       </ScrollView>
+//     </SafeAreaView>
+//   );
+// };
+// const styles = StyleSheet.create({
+//   safeArea: {
+//     flex: 1,
+//     backgroundColor: "#122017",
+//   },
 
-export default PaywallScreen;
+//   scrollContent: {
+//     flexGrow: 1,
+//     paddingHorizontal: 20,
+//     paddingTop: 10,
+//     paddingBottom: 35,
+//     justifyContent: "center",
+//   },
+
+//   center: {
+//     flex: 1,
+//     backgroundColor: "#122017",
+//     justifyContent: "center",
+//     alignItems: "center",
+//   },
+
+//   logo: {
+//     width: "100%",
+//     maxWidth: 430,
+//     height: 210,
+//     alignSelf: "center",
+//     marginBottom: 20,
+//   },
+
+//   title: {
+//     fontSize: 25,
+//     fontWeight: "bold",
+//     color: "#fff",
+//     textAlign: "center",
+//     marginBottom: 10,
+//   },
+
+//   subtitle: {
+//     fontSize: 16,
+//     color: "#ccc",
+//     textAlign: "center",
+//     marginBottom: 15,
+//     paddingHorizontal: 10,
+//   },
+
+//   options: {
+//     width: "100%",
+//     marginTop: 10,
+//   },
+
+//   option: {
+//     borderWidth: 1,
+//     borderColor: "#444",
+//     borderRadius: 12,
+//     paddingVertical: 14,
+//     paddingHorizontal: 14,
+//     marginVertical: 8,
+//     flexDirection: "row",
+//     justifyContent: "space-between",
+//     alignItems: "center",
+//     backgroundColor: "#1c2a20",
+//     gap: 10,
+//   },
+
+//   optionSelected: {
+//     borderColor: "#FF9500",
+//     backgroundColor: "#233323",
+//   },
+
+//   radioRow: {
+//     flex: 1,
+//     flexDirection: "row",
+//     alignItems: "center",
+//   },
+
+//   radioOuter: {
+//     width: 22,
+//     height: 22,
+//     borderRadius: 11,
+//     borderWidth: 2,
+//     borderColor: "#aaa",
+//     marginRight: 10,
+//     justifyContent: "center",
+//     alignItems: "center",
+//   },
+
+//   radioOuterSelected: {
+//     borderColor: "#FF9500",
+//   },
+
+//   radioInner: {
+//     width: 10,
+//     height: 10,
+//     borderRadius: 5,
+//     backgroundColor: "#FF9500",
+//   },
+
+//   optionText: {
+//     flex: 1,
+//     fontSize: 16,
+//     fontWeight: "600",
+//     color: "#fff",
+//   },
+
+//   price: {
+//     fontSize: 16,
+//     fontWeight: "700",
+//     color: "#ccc",
+//   },
+
+//   continueButton: {
+//     marginTop: 20,
+//     backgroundColor: "#FF9500",
+//     paddingVertical: 15,
+//     borderRadius: 12,
+//   },
+
+//   continueText: {
+//     fontSize: 18,
+//     color: "#fff",
+//     fontWeight: "bold",
+//     textAlign: "center",
+//   },
+
+//   cancelText: {
+//     textAlign: "center",
+//     color: "#fff",
+//     fontSize: 16,
+//     marginTop: 18,
+//   },
+
+//   footer: {
+//     flexDirection: "row",
+//     justifyContent: "center",
+//     marginTop: 22,
+//     marginBottom: 10,
+//   },
+
+//   footerLink: {
+//     color: "#FF9500",
+//     fontSize: 14,
+//   },
+
+//   footerDivider: {
+//     color: "#777",
+//     marginHorizontal: 5,
+//   },
+// });
+
+// export default PaywallScreen;
 
 // import React, { useEffect, useState } from "react";
 // import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -1292,3 +1369,428 @@ export default PaywallScreen;
 //   cancelText: { color: "#007bff", fontSize: 16, marginTop: 15 },
 //   error: { color: "red", textAlign: "center", marginTop: 20 },
 // });
+
+import { useAuth } from "@/context/AuthContext";
+import { useProUser } from "@/context/ProUserContext";
+import { checkProEntitlement } from "@/lib/revenuecat";
+import { useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import Purchases, {
+  PURCHASES_ERROR_CODE,
+  PurchasesPackage,
+} from "react-native-purchases";
+
+const PaywallScreen: React.FC = () => {
+  const [packages, setPackages] = useState<PurchasesPackage[]>([]);
+  const [selectedPkg, setSelectedPkg] = useState<PurchasesPackage | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [checkingAccess, setCheckingAccess] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loginAlertShownRef = useRef(false);
+
+  const router = useRouter();
+  const { user, authLoading } = useAuth();
+  const { updateEntitlements } = useProUser();
+
+  useEffect(() => {
+    const checkAccess = async () => {
+      if (authLoading) return;
+
+      if (!user?.$id) {
+        if (!loginAlertShownRef.current) {
+          loginAlertShownRef.current = true;
+
+          Alert.alert(
+            "Login required",
+            "Please login or create an account before subscribing so your subscription and cloud data stay linked.",
+            [
+              {
+                text: "Login",
+                onPress: () => router.replace("/(auth)/LoginScreen"),
+              },
+            ],
+            { cancelable: false }
+          );
+        }
+
+        setCheckingAccess(false);
+        return;
+      }
+
+      try {
+        const isPro = await checkProEntitlement();
+
+        if (isPro) {
+          router.replace("/(tabs)");
+          return;
+        }
+      } catch (err) {
+        console.warn("⚠️ Failed to check Pro status:", err);
+      } finally {
+        setCheckingAccess(false);
+      }
+    };
+
+    checkAccess();
+  }, [authLoading, user?.$id, router]);
+
+  useEffect(() => {
+    if (authLoading || !user?.$id) return;
+
+    const init = async () => {
+      try {
+        console.log("🟢 Loading RevenueCat offerings");
+
+        const offerings = await Purchases.getOfferings();
+
+        if (offerings.current?.availablePackages.length) {
+          setPackages(offerings.current.availablePackages);
+          setSelectedPkg(offerings.current.availablePackages[0]);
+        } else {
+          setError("No subscription packages available.");
+        }
+      } catch (err: any) {
+        console.warn("⚠️ Error fetching offerings:", err);
+        setError("Failed to fetch products. Try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    init();
+
+    const listener = async (info: any) => {
+      await updateEntitlements(info);
+    };
+
+    Purchases.addCustomerInfoUpdateListener(listener);
+
+    return () => {
+      try {
+        Purchases.removeCustomerInfoUpdateListener(listener);
+      } catch {
+        console.warn("⚠️ RevenueCat listener cleanup skipped");
+      }
+    };
+  }, [authLoading, user?.$id, updateEntitlements]);
+
+  const handleContinue = async () => {
+    if (!selectedPkg) return;
+
+    try {
+      setLoading(true);
+      console.log(`INFO 💰 Purchasing Product '${selectedPkg.identifier}'`);
+
+      const { customerInfo } = await Purchases.purchasePackage(selectedPkg);
+
+      await updateEntitlements(customerInfo);
+
+      console.log("✅ Subscription completed & entitlements synced");
+
+      router.replace("/(tabs)");
+    } catch (err: any) {
+      if (
+        err.userCancelled ||
+        err.code === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR
+      ) {
+        console.log("🟡 Purchase cancelled by user");
+      } else if (
+        err.code === PURCHASES_ERROR_CODE.PRODUCT_ALREADY_PURCHASED_ERROR ||
+        err.message?.includes("already active")
+      ) {
+        console.log("ℹ️ Product already owned - restoring purchases");
+
+        const info = await Purchases.restorePurchases();
+        await updateEntitlements(info);
+
+        router.replace("/(tabs)");
+      } else {
+        console.warn("❌ Purchase error:", err);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    try {
+      setLoading(true);
+
+      const info = await Purchases.restorePurchases();
+
+      await updateEntitlements(info);
+
+      console.log(
+        "📦 Active entitlements after restore:",
+        Object.keys(info.entitlements.active)
+      );
+
+      console.log("🔄 Restored purchases & updated entitlements");
+
+      router.replace("/(tabs)");
+    } catch (err) {
+      console.warn("⚠️ Restore failed:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (authLoading || checkingAccess || loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.center}>
+        <Text style={{ color: "red" }}>{error}</Text>
+      </View>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Image
+          source={require("../../assets/icon.png")}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+
+        <Text style={styles.title}>
+          Unlock all{"\n"}StockTally Pro features
+        </Text>
+
+        <Text style={styles.subtitle}>
+          🔒 Subscription unlocks AI features, dashboard analytics and unlimited
+          access.
+        </Text>
+
+        <View style={styles.options}>
+          {packages.map((pkg) => (
+            <TouchableOpacity
+              key={pkg.identifier}
+              style={[
+                styles.option,
+                selectedPkg?.identifier === pkg.identifier &&
+                  styles.optionSelected,
+              ]}
+              onPress={() => setSelectedPkg(pkg)}
+            >
+              <View style={styles.radioRow}>
+                <View
+                  style={[
+                    styles.radioOuter,
+                    selectedPkg?.identifier === pkg.identifier &&
+                      styles.radioOuterSelected,
+                  ]}
+                >
+                  {selectedPkg?.identifier === pkg.identifier && (
+                    <View style={styles.radioInner} />
+                  )}
+                </View>
+
+                <Text style={styles.optionText} numberOfLines={2}>
+                  {pkg.product.title}
+                </Text>
+              </View>
+
+              <Text style={styles.price}>{pkg.product.priceString}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
+          <Text style={styles.continueText}>Subscribe Now</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => router.push("/(tabs)")}>
+          <Text style={styles.cancelText}>Maybe Later</Text>
+        </TouchableOpacity>
+
+        <View style={styles.footer}>
+          <TouchableOpacity onPress={handleRestore}>
+            <Text style={styles.footerLink}>Restore</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.footerDivider}> | </Text>
+
+          <TouchableOpacity
+            onPress={() =>
+              WebBrowser.openBrowserAsync(
+                "https://asif-siddiqui-ds.github.io/StockTally/privacy.html"
+              )
+            }
+          >
+            <Text style={styles.footerLink}>Privacy</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.footerDivider}> | </Text>
+
+          <TouchableOpacity
+            onPress={() =>
+              WebBrowser.openBrowserAsync(
+                Platform.OS === "ios"
+                  ? "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
+                  : "https://play.google.com/about/play-terms/"
+              )
+            }
+          >
+            <Text style={styles.footerLink}>Terms</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#122017",
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 35,
+    justifyContent: "center",
+  },
+  center: {
+    flex: 1,
+    backgroundColor: "#122017",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  logo: {
+    width: "100%",
+    maxWidth: 430,
+    height: 210,
+    alignSelf: "center",
+    marginBottom: 20,
+  },
+  title: {
+    fontSize: 25,
+    fontWeight: "bold",
+    color: "#fff",
+    textAlign: "center",
+    marginBottom: 10,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: "#ccc",
+    textAlign: "center",
+    marginBottom: 15,
+    paddingHorizontal: 10,
+  },
+  options: {
+    width: "100%",
+    marginTop: 10,
+  },
+  option: {
+    borderWidth: 1,
+    borderColor: "#444",
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    marginVertical: 8,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#1c2a20",
+    gap: 10,
+  },
+  optionSelected: {
+    borderColor: "#FF9500",
+    backgroundColor: "#233323",
+  },
+  radioRow: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  radioOuter: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: "#aaa",
+    marginRight: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  radioOuterSelected: {
+    borderColor: "#FF9500",
+  },
+  radioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#FF9500",
+  },
+  optionText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#fff",
+  },
+  price: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#ccc",
+  },
+  continueButton: {
+    marginTop: 20,
+    backgroundColor: "#FF9500",
+    paddingVertical: 15,
+    borderRadius: 12,
+  },
+  continueText: {
+    fontSize: 18,
+    color: "#fff",
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  cancelText: {
+    textAlign: "center",
+    color: "#fff",
+    fontSize: 16,
+    marginTop: 18,
+  },
+  footer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 22,
+    marginBottom: 10,
+  },
+  footerLink: {
+    color: "#FF9500",
+    fontSize: 14,
+  },
+  footerDivider: {
+    color: "#777",
+    marginHorizontal: 5,
+  },
+});
+
+export default PaywallScreen;

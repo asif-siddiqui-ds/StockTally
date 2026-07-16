@@ -1,5 +1,6 @@
 
 import { HapticTab } from '@/components/HapticTab';
+import Header from '@/components/Header';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
@@ -13,24 +14,41 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
   
   return (
+    // <Tabs
+    //   screenOptions={{
+    //     tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+    //     header: (props) => <Header {...props} />,
+    //     headerShown: true,
+    //     tabBarButton: HapticTab,
+    //     tabBarBackground: TabBarBackground,
+    //     tabBarStyle: Platform.select({
+    //       ios: {
+    //         position: 'absolute', // transparent background on iOS
+    //       },
+    //       default: {},
+    //     }),
+    //   }}
+    // >
     <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            position: 'absolute', // transparent background on iOS
-          },
-          default: {},
-        }),
-      }}
-    >
+        screenOptions={{
+          tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
+          header: (props) => <Header {...props} />,
+          headerShown: true,
+          tabBarButton: HapticTab,
+          tabBarBackground: TabBarBackground,
+          tabBarStyle: Platform.select({
+            ios: {
+              position: "absolute",
+            },
+            default: {},
+          }),
+        }}
+      >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
+          headerShown: false,
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="house.fill" color={color} />
           ),
@@ -39,7 +57,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="saleList"
         options={{
-          title: "Sale List",
+          title: "Stock Out",
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons name="shopping-cart" size={size} color={color} />
           ),
