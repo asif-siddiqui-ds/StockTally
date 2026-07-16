@@ -2,7 +2,7 @@
   "expo": {
     "name": "StockTally",
     "slug": "StockTally",
-    "version": "2.1.4",
+    "version": "2.1.5",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "stocktally",
@@ -11,7 +11,7 @@
     "ios": {
       "icon": "./assets/images/icon.png",
       "supportsTablet": true,
-      "buildNumber": "47",
+      "buildNumber": "48",
       "bundleIdentifier": "com.asif.Stocktally",
       "usesAppleSignIn": true,
       "infoPlist": {
@@ -31,7 +31,7 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.asif.Stocktally",
-      "versionCode": 43,
+      "versionCode": 48,
       "permissions": [
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
@@ -64,7 +64,8 @@
       "expo-sqlite",
       "expo-web-browser",
       "expo-image-picker",
-      "expo-secure-store"
+      "expo-secure-store",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true
