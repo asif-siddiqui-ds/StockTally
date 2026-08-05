@@ -1,520 +1,805 @@
-// import { database, ID, Query } from "@/appwrite";
-// import { getLocal, setLocal } from "./storage";
-
-// const DATABASE_ID = "68215d2a00260d43fd49";
-// const STOCK_COLLECTION_ID = "68215de900192d30006e";
-// const SALE_COLLECTION_ID = "68215e09000dab34a3e5";
-// const RETURN_COLLECTION_ID = "returns";
-// const COMPANY_COLLECTION_ID = "companyprofile";
-
-// // Helper to add timestamp safely
-// function nowISO() {
-//   return new Date().toISOString();
-// }
-
-// // ---- 1️⃣ Upload Unsynced Local Data → Cloud ----
-// async function uploadUnsynced(
-//   arr: any[],
-//   coll: string,
-//   key: string,
-//   userId: string
-// ) {
-//   const updatedArr: any[] = [];
-
-//   for (const item of arr) {
-//     try {
-//       // Only upload items belonging to guest or not yet synced
-//       if (item.userId === "guest" || !item.synced) {
-//         const { id, ...data } = item;
-
-//         const res = await database.createDocument(DATABASE_ID, coll, ID.unique(), {
-//           ...data,
-//           userId,
-//           syncedAt: nowISO(),
-//           synced: true,
-//         });
-
-//         updatedArr.push({
-//           ...item,
-//           id: res.$id,
-//           userId,
-//           synced: true,
-//           syncedAt: nowISO(),
-//         });
-//       } else {
-//         updatedArr.push(item);
-//       }
-//     } catch (error) {
-//       console.error(`❌ Upload failed (${coll})`, error);
-//       updatedArr.push({ ...item, synced: false });
-//     }
-//   }
-
-//   // Save updated local data
-//   await setLocal(key, updatedArr);
-//   console.log(`✅ Uploaded & updated local: ${key}`);
-// }
-
-// // ---- 2️⃣ Download Cloud Data → Local (merge, no duplicates) ----
-// async function downloadCloudData(
-//   coll: string,
-//   key: string,
-//   userId: string
-// ) {
-//   const localData = await getLocal<any>(key);
-//   const res = await database.listDocuments(DATABASE_ID, coll, [
-//     Query.equal("userId", userId),
-//     Query.orderDesc("$createdAt"),
-//   ]);
-
-//   const cloudDocs = res.documents.map((doc) => ({
-//     id: doc.$id,
-//     ...doc,
-//     synced: true,
-//   }));
-
-//   // Merge logic: keep unique IDs, prefer cloud if newer
-//   const merged = [
-//     ...cloudDocs,
-//     ...localData.filter(
-//       (localItem: any) => !cloudDocs.some((cloud) => cloud.id === localItem.id)
-//     ),
-//   ];
-
-//   await setLocal(key, merged);
-//   console.log(`✅ Synced from cloud → local: ${key}`);
-// }
-
-// // ---- 3️⃣ Master Function: Full Sync ----
-// export async function syncAllData(userId: string) {
-//   console.log("🔄 Starting full two-way sync...");
-
-//   const stock = await getLocal("stock");
-//   const sales = await getLocal("sales");
-//   const returns = await getLocal("returns");
-//   const profiles = await getLocal("companyprofile");
-
-//   // Upload unsynced (guest) → cloud
-//   await uploadUnsynced(stock, STOCK_COLLECTION_ID, "stock", userId);
-//   await uploadUnsynced(sales, SALE_COLLECTION_ID, "sales", userId);
-//   await uploadUnsynced(returns, RETURN_COLLECTION_ID, "returns", userId);
-//   await uploadUnsynced(profiles, COMPANY_COLLECTION_ID, "companyprofile", userId);
-
-//   // Download latest from cloud → local
-//   await downloadCloudData(STOCK_COLLECTION_ID, "stock", userId);
-//   await downloadCloudData(SALE_COLLECTION_ID, "sales", userId);
-//   await downloadCloudData(RETURN_COLLECTION_ID, "returns", userId);
-//   await downloadCloudData(COMPANY_COLLECTION_ID, "companyprofile", userId);
-
-//   console.log("✅ Full sync complete!");
-// // }
-
-// import { database, ID, Query, storage } from "@/appwrite";
-// import * as FileSystem from "expo-file-system";
-// import { getLocal, setLocal } from "./storage";
-
-
-// const DATABASE_ID = "68215d2a00260d43fd49";
-// const STOCK_COLLECTION_ID = "68215de900192d30006e";
-// const SALE_COLLECTION_ID = "68215e09000dab34a3e5";
-// const RETURN_COLLECTION_ID = "returns";
-// const COMPANY_COLLECTION_ID = "companyprofile";
-// const LOGO_BUCKET_ID = "68215d59001c82087763"; // ✅ create this in Appwrite Storage
-
-// function nowISO() {
-//   return new Date().toISOString();  
-// }
-
-// // ---- 1️⃣ Upload Unsynced Local Data → Cloud ----
-
-// export async function uploadUnsynced(
-//   arr: any[],
-//   coll: string,
-//   key: string,
-//   userId: string
-// ) {
-//   const updatedArr: any[] = [];
-
-//   for (const item of arr) {
-//     try {
-//       if (item.userId === "guest" || !item.synced) {
-//         const { id, logoLocal, ...data } = item; // ❌ exclude logoLocal from cloud payload
-//         let logoCloud = data.logoCloud;
-
-//         // 🖼️ Upload company logo only if not uploaded yet
-//         if (coll === COMPANY_COLLECTION_ID && logoLocal) {
-//           try {
-//             const fileInfo = await FileSystem.getInfoAsync(logoLocal);
-//             if (fileInfo.exists) {
-//               const fileBlob = await fetch(logoLocal).then((r) => r.blob());
-//               const uploadRes = await storage.createFile(
-//                 LOGO_BUCKET_ID,
-//                 ID.unique(),
-//                 fileBlob as any
-//               );
-//               logoCloud = uploadRes.$id;
-//               console.log("✅ Logo uploaded:", logoCloud);
-//               console.log("⬆️ Uploading logo via FileSystem.uploadAsync:", logoLocal);
-
-//               // Generate a unique file ID (Appwrite expects file param name "file")
-//               const fileId = ID.unique();
-
-//               // Upload directly to Appwrite storage endpoint
-//               const response = await FileSystem.uploadAsync(
-//                 `${storage.client.config.endpoint}/storage/buckets/${LOGO_BUCKET_ID}/files`,
-//                 logoLocal,
-//                 {
-//                   httpMethod: "POST",
-//                   uploadType: FileSystem.FileSystemUploadType.MULTIPART,
-//                   fieldName: "file", // Appwrite expects "file"
-//                   parameters: { fileId }, // optional metadata
-//                   headers: {
-//                     "X-Appwrite-Project": "68215c9f00161f204345",
-//                   },
-//                 }
-//               );
-
-//               const json = JSON.parse(response.body);
-//               logoCloud = json.$id || json.$fileId;
-//               console.log("✅ Logo uploaded successfully:", logoCloud);
-
-//             } else if (!fileInfo.exists) {
-//               console.warn("⚠️ Local logo file not found:", logoLocal);
-//             }
-//           } catch (err) {
-//             console.warn("⚠️ Logo upload failed:", err);
-//           }
-//         }
-
-//         // 🧩 Ensure any date fields are valid ISO strings before upload
-//         if (data.date && typeof data.date === "string") {
-//           const d = new Date(data.date);
-//           if (isNaN(d.getTime())) {
-//             // fallback if it's localized or unparsable
-//             const parts = data.date.split("/");
-//             if (parts.length === 3) {
-//               const [day, month, year] = parts.map(Number);
-//               data.date = new Date(year, month - 1, day).toISOString();
-//             } else {
-//               data.date = new Date().toISOString(); // fallback to now
-//             }
-//           } else {
-//             data.date = d.toISOString();
-//           }
-//         }
-
-//         // ✅ Create or update document on Appwrite (without logoLocal)
-//         const res = await database.createDocument(DATABASE_ID, coll, ID.unique(), {
-//           ...data,
-//           logoCloud,
-//           userId,
-//           syncedAt: nowISO(),
-//           synced: true,
-//         });
-
-//         // ✅ Update local version (keep logoLocal)
-//         updatedArr.push({
-//           ...item,
-//           id: res.$id,
-//           userId,
-//           logoCloud,
-//           synced: true,
-//           syncedAt: nowISO(),
-//           date: item.date, // ✅ preserve original sale/record date
-//         });
-//       } else {
-//         updatedArr.push(item);
-//       }
-//     } catch (error) {
-//       console.error(`❌ Upload failed (${coll})`, error);
-//       updatedArr.push({ ...item, synced: false });
-//     }
-//   }
-
-//   await setLocal(key, updatedArr);
-//   console.log(`✅ Uploaded & updated local: ${key}`);
-// }
-
-
-// // helper to get Appwrite logo preview URL
-// function getLogoPreviewUrl(fileId?: string) {
-//   if (!fileId) return null;
-//   return storage.getFilePreview(LOGO_BUCKET_ID, fileId);
-// }
-
-// export async function downloadCloudData(
-//   coll: string,
-//   key: string,
-//   userId: string
-// ) {
-//   const localData = await getLocal<any>(key);
-
-//   const res = await database.listDocuments(DATABASE_ID, coll, [
-//     Query.equal("userId", userId),
-//     Query.orderDesc("$createdAt"),
-//   ]);
-
-//   // 🧩 Convert Appwrite docs to local objects
-//   const cloudDocs = res.documents.map((doc) => {
-//     const mapped: any = {
-//       id: doc.$id,
-//       ...doc,
-//       synced: true,
-//     };
-
-//     // 🖼️ Special handling for companyprofile logos
-//     if (coll === COMPANY_COLLECTION_ID) {
-//       const logoCloud = doc.logoCloud || null;
-//       mapped.logoCloud = logoCloud;
-
-//       // ⚙️ Only fill logoLocal with cloud preview if we don't already have a local file path
-//       const localMatch = localData.find(
-//         (localItem: any) => localItem.id === doc.$id
-//       );
-//       mapped.logoLocal =
-//         localMatch?.logoLocal ||
-//         (logoCloud ? getLogoPreviewUrl(logoCloud) : null);
-//     }
-
-//     return mapped;
-//   });
-
-//   // 🧠 Merge cloud + local data (keep unique IDs, prefer cloud)
-//   const merged = [
-//     ...cloudDocs,
-//     ...localData.filter(
-//       (localItem: any) => !cloudDocs.some((cloud) => cloud.id === localItem.id)
-//     ),
-//   ];
-
-//   await setLocal(key, merged);
-//   console.log(`✅ Synced from cloud → local: ${key}`);
-// }
-
-// // ---- 3️⃣ Master Function: Full Sync ----
-// export async function syncAllData(userId: string) {
-//   console.log("🔄 Starting full two-way sync...");
-
-//   const stock = await getLocal("stock");
-//   const sales = await getLocal("sales");
-//   const returns = await getLocal("returns");
-//   const profiles = await getLocal("companyprofile");
-
-//   await uploadUnsynced(stock, STOCK_COLLECTION_ID, "stock", userId);
-//   await uploadUnsynced(sales, SALE_COLLECTION_ID, "sales", userId);
-//   await uploadUnsynced(returns, RETURN_COLLECTION_ID, "returns", userId);
-//   await uploadUnsynced(profiles, COMPANY_COLLECTION_ID, "companyprofile", userId);
-
-//   await downloadCloudData(STOCK_COLLECTION_ID, "stock", userId);
-//   await downloadCloudData(SALE_COLLECTION_ID, "sales", userId);
-//   await downloadCloudData(RETURN_COLLECTION_ID, "returns", userId);
-//   await downloadCloudData(COMPANY_COLLECTION_ID, "companyprofile", userId);
-
-//   console.log("✅ Full sync complete!");
-// }
+// lib/sync.ts
 
 import { database, ID, Query, storage } from "@/appwrite";
-import * as FileSystem from "expo-file-system";
-import { getLocal, setLocal } from "./storage";
+import * as FileSystem from "expo-file-system/legacy";
 
-const DATABASE_ID = "68215d2a00260d43fd49";
+import { syncCustomers } from "@/lib/appwriteCustomerService";
+import { syncInvoices } from "@/lib/appwriteInvoiceService";
+import { syncQuotes } from "@/lib/appwriteQuoteService";
+import { syncSuppliers } from "@/lib/appwriteSupplierService";
+import { syncSupplierStockIn } from "@/lib/appwriteSupplierStockInService";
 
-const STOCK_COLLECTION_ID = "68215de900192d30006e";
-const SALE_COLLECTION_ID = "68215e09000dab34a3e5";
-const RETURN_COLLECTION_ID = "returns";
-const COMPANY_COLLECTION_ID = "companyprofile";
-const STOCK_MOVEMENT_COLLECTION_ID = "stockmovement";
+import { getLocal, setLocal } from "@/lib/storage";
 
-const LOGO_BUCKET_ID = "68215d59001c82087763";
+const DATABASE_ID =
+  process.env.EXPO_PUBLIC_DATABASE_ID ||
+  "68215d2a00260d43fd49";
 
-function nowISO() {
+const STOCK_COLLECTION_ID =
+  process.env.EXPO_PUBLIC_STOCK_COLLECTION_ID ||
+  "68215de900192d30006e";
+
+const SALE_COLLECTION_ID =
+  process.env.EXPO_PUBLIC_SALE_COLLECTION_ID ||
+  "68215e09000dab34a3e5";
+
+const RETURN_COLLECTION_ID =
+  process.env.EXPO_PUBLIC_RETURN_COLLECTION_ID ||
+  "returns";
+
+const COMPANY_COLLECTION_ID =
+  process.env.EXPO_PUBLIC_COMPANY_COLLECTION_ID ||
+  "companyprofile";
+
+const STOCK_MOVEMENT_COLLECTION_ID =
+  process.env.EXPO_PUBLIC_STOCK_MOVEMENT_COLLECTION_ID ||
+  "stockmovement";
+
+const LOGO_BUCKET_ID =
+  process.env.EXPO_PUBLIC_LOGO_BUCKET_ID ||
+  "68215d59001c82087763";
+
+const APPWRITE_PROJECT_ID =
+  process.env.EXPO_PUBLIC_PROJECT_ID ||
+  "68215c9f00161f204345";
+
+/* -------------------------------------------------------------------------- */
+/*                                  TYPES                                     */
+/* -------------------------------------------------------------------------- */
+
+export type SyncModuleName =
+  | "companyProfile"
+  | "stock"
+  | "stockMovements"
+  | "customers"
+  | "suppliers"
+  | "supplierStockIn"
+  | "invoices"
+  | "quotes"
+  | "sales"
+  | "returns";
+
+export interface SyncModuleResult {
+  module: SyncModuleName;
+  success: boolean;
+  startedAt: string;
+  finishedAt: string;
+  durationMs: number;
+  result?: unknown;
+  error?: string;
+}
+
+export interface FullSyncResult {
+  success: boolean;
+  startedAt: string;
+  finishedAt: string;
+  durationMs: number;
+  completed: number;
+  failed: number;
+  modules: SyncModuleResult[];
+}
+
+export type SyncProgressCallback = (
+  completed: number,
+  total: number,
+  currentModule: SyncModuleName,
+  result?: SyncModuleResult
+) => void;
+
+type LegacySyncConfig = {
+  module: SyncModuleName;
+  collectionId: string;
+  storageKey: string;
+  orderField?: string;
+};
+
+type SyncTask = {
+  name: SyncModuleName;
+  run: () => Promise<unknown>;
+};
+
+/* -------------------------------------------------------------------------- */
+/*                                UTILITIES                                   */
+/* -------------------------------------------------------------------------- */
+
+function nowISO(): string {
   return new Date().toISOString();
 }
 
-function normaliseDate(value?: string | null) {
+function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
+
+function normaliseDate(value?: string | null): string {
   if (!value) return nowISO();
 
-  const d = new Date(value);
-  if (!isNaN(d.getTime())) return d.toISOString();
+  const date = new Date(value);
+
+  if (!Number.isNaN(date.getTime())) {
+    return date.toISOString();
+  }
 
   const parts = value.split("/");
+
   if (parts.length === 3) {
     const [day, month, year] = parts.map(Number);
-    return new Date(year, month - 1, day).toISOString();
+    const parsed = new Date(year, month - 1, day);
+
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString();
+    }
   }
 
   return nowISO();
 }
 
+function stripAppwriteMetadata(
+  item: Record<string, any>
+): Record<string, any> {
+  const {
+    id,
+    cloudId,
+    logoLocal,
+    $id,
+    $createdAt,
+    $updatedAt,
+    $permissions,
+    $databaseId,
+    $collectionId,
+    ...data
+  } = item;
+
+  return data;
+}
+
+function getLogoPreviewUrl(fileId?: string): string | null {
+  if (!fileId) return null;
+
+  return String(
+    storage.getFilePreview(
+      LOGO_BUCKET_ID,
+      fileId
+    )
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*                              LOGO UPLOAD                                   */
+/* -------------------------------------------------------------------------- */
+
+async function uploadCompanyLogo(
+  logoLocal?: string,
+  currentCloudLogo?: string
+): Promise<string | undefined> {
+  if (!logoLocal) return currentCloudLogo;
+
+  try {
+    const fileInfo =
+      await FileSystem.getInfoAsync(logoLocal);
+
+    if (!fileInfo.exists) {
+      return currentCloudLogo;
+    }
+
+    const fileId = ID.unique();
+
+    const response = await FileSystem.uploadAsync(
+      `${storage.client.config.endpoint}/storage/buckets/${LOGO_BUCKET_ID}/files`,
+      logoLocal,
+      {
+        httpMethod: "POST",
+        uploadType:
+          FileSystem.FileSystemUploadType.MULTIPART,
+        fieldName: "file",
+        parameters: { fileId },
+        headers: {
+          "X-Appwrite-Project": APPWRITE_PROJECT_ID,
+        },
+      }
+    );
+
+    if (response.status < 200 || response.status >= 300) {
+      throw new Error(
+        `Logo upload returned status ${response.status}`
+      );
+    }
+
+    const parsed = JSON.parse(response.body);
+
+    return (
+      parsed.$id ||
+      parsed.$fileId ||
+      currentCloudLogo
+    );
+  } catch (error) {
+    console.warn("⚠️ Company logo upload failed:", error);
+    return currentCloudLogo;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                       LEGACY GENERIC UPLOAD                                */
+/* -------------------------------------------------------------------------- */
+
 export async function uploadUnsynced(
   arr: any[],
-  coll: string,
-  key: string,
+  collectionId: string,
+  storageKey: string,
   userId: string
-) {
-  const updatedArr: any[] = [];
+): Promise<{
+  uploaded: number;
+  failed: number;
+}> {
+  const updatedItems: any[] = [];
+  let uploaded = 0;
+  let failed = 0;
 
   for (const item of arr || []) {
+    const belongsToCurrentUser =
+      !item.userId ||
+      item.userId === "guest" ||
+      item.userId === userId;
+
+    if (!belongsToCurrentUser) {
+      updatedItems.push(item);
+      continue;
+    }
+
+    const requiresUpload =
+      item.userId === "guest" ||
+      !item.userId ||
+      !item.synced;
+
+    if (!requiresUpload) {
+      updatedItems.push(item);
+      continue;
+    }
+
     try {
-      if (item.userId === "guest" || !item.synced) {
-        const { id, logoLocal, $id, $createdAt, $updatedAt, $permissions, $databaseId, $collectionId, ...data } = item;
+      const data = stripAppwriteMetadata(item);
 
-        let logoCloud = data.logoCloud;
+      let logoCloud = data.logoCloud;
 
-        if (coll === COMPANY_COLLECTION_ID && logoLocal) {
-          try {
-            const fileInfo = await FileSystem.getInfoAsync(logoLocal);
+      if (collectionId === COMPANY_COLLECTION_ID) {
+        logoCloud = await uploadCompanyLogo(
+          item.logoLocal,
+          data.logoCloud
+        );
+      }
 
-            if (fileInfo.exists) {
-              const fileId = ID.unique();
+      if (data.date) {
+        data.date = normaliseDate(data.date);
+      }
 
-              const response = await FileSystem.uploadAsync(
-                `${storage.client.config.endpoint}/storage/buckets/${LOGO_BUCKET_ID}/files`,
-                logoLocal,
-                {
-                  httpMethod: "POST",
-                  uploadType: FileSystem.FileSystemUploadType.MULTIPART,
-                  fieldName: "file",
-                  parameters: { fileId },
-                  headers: {
-                    "X-Appwrite-Project": "68215c9f00161f204345",
-                  },
-                }
-              );
+      if (data.dateTime) {
+        data.dateTime = normaliseDate(data.dateTime);
+      }
 
-              const json = JSON.parse(response.body);
-              logoCloud = json.$id || json.$fileId;
-            }
-          } catch (err) {
-            console.warn("⚠️ Logo upload failed:", err);
-          }
-        }
+      if (data.createdAt) {
+        data.createdAt = normaliseDate(
+          data.createdAt
+        );
+      }
 
-        if (data.date) {
-          data.date = normaliseDate(data.date);
-        }
+      if (data.updatedAt) {
+        data.updatedAt = normaliseDate(
+          data.updatedAt
+        );
+      }
 
-        if (data.dateTime) {
-          data.dateTime = normaliseDate(data.dateTime);
-        }
+      const syncedAt = nowISO();
 
-        if (data.syncedAt) {
-          data.syncedAt = normaliseDate(data.syncedAt);
-        }
-
-        const res = await database.createDocument(DATABASE_ID, coll, ID.unique(), {
+      const created = await database.createDocument(
+        DATABASE_ID,
+        collectionId,
+        ID.unique(),
+        {
           ...data,
           logoCloud,
           userId,
-          syncedAt: nowISO(),
+          syncedAt,
           synced: true,
-        });
+        }
+      );
 
-        updatedArr.push({
-          ...item,
-          id: res.$id,
-          userId,
-          logoCloud,
-          synced: true,
-          syncedAt: nowISO(),
-          date: item.date,
-          dateTime: item.dateTime,
-        });
-      } else {
-        updatedArr.push(item);
-      }
+      updatedItems.push({
+        ...item,
+
+        // Keep the local ID stable so other local records
+        // referencing it are not broken.
+        id: item.id,
+
+        cloudId: created.$id,
+        userId,
+        logoCloud,
+        synced: true,
+        syncedAt,
+
+        // Preserve local display values.
+        date: item.date,
+        dateTime: item.dateTime,
+      });
+
+      uploaded += 1;
     } catch (error) {
-      console.error(`❌ Upload failed (${coll})`, error);
-      updatedArr.push({ ...item, synced: false });
+      console.error(
+        `❌ Upload failed (${collectionId})`,
+        error
+      );
+
+      updatedItems.push({
+        ...item,
+        userId:
+          item.userId === "guest" || !item.userId
+            ? userId
+            : item.userId,
+        synced: false,
+      });
+
+      failed += 1;
     }
   }
 
-  await setLocal(key, updatedArr);
+  await setLocal(storageKey, updatedItems);
+
+  return { uploaded, failed };
 }
 
-function getLogoPreviewUrl(fileId?: string) {
-  if (!fileId) return null;
-  return storage.getFilePreview(LOGO_BUCKET_ID, fileId);
-}
+/* -------------------------------------------------------------------------- */
+/*                      LEGACY GENERIC DOWNLOAD                               */
+/* -------------------------------------------------------------------------- */
 
 export async function downloadCloudData(
-  coll: string,
-  key: string,
-  userId: string
-) {
-  const localData = await getLocal<any>(key);
+  collectionId: string,
+  storageKey: string,
+  userId: string,
+  orderField = "$createdAt"
+): Promise<{
+  downloaded: number;
+  preservedLocalUnsynced: number;
+}> {
+  const localData =
+    (await getLocal<any>(storageKey)) || [];
 
-  const orderField = coll === STOCK_MOVEMENT_COLLECTION_ID ? "dateTime" : "$createdAt";
+  const response = await database.listDocuments(
+    DATABASE_ID,
+    collectionId,
+    [
+      Query.equal("userId", userId),
+      Query.orderDesc(orderField),
+      Query.limit(5000),
+    ]
+  );
 
-  const res = await database.listDocuments(DATABASE_ID, coll, [
-    Query.equal("userId", userId),
-    Query.orderDesc(orderField),
+  const cloudDocs = response.documents.map(
+    (document) => {
+      const localId =
+        document.localId ||
+        document.id ||
+        document.$id;
+
+      const mapped: any = {
+        ...document,
+        id: localId,
+        cloudId: document.$id,
+        userId,
+        synced: true,
+        syncedAt:
+          document.syncedAt || nowISO(),
+      };
+
+      if (collectionId === COMPANY_COLLECTION_ID) {
+        const logoCloud =
+          document.logoCloud || null;
+
+        const localMatch = localData.find(
+          (localItem: any) =>
+            localItem.id === localId ||
+            localItem.cloudId === document.$id
+        );
+
+        mapped.logoCloud = logoCloud;
+        mapped.logoLocal =
+          localMatch?.logoLocal ||
+          (logoCloud
+            ? getLogoPreviewUrl(logoCloud)
+            : null);
+      }
+
+      return mapped;
+    }
+  );
+
+  const cloudLocalIds = new Set(
+    cloudDocs.map((item) => item.id)
+  );
+
+  const cloudIds = new Set(
+    cloudDocs
+      .map((item) => item.cloudId)
+      .filter(Boolean)
+  );
+
+  const localUnsynced = localData.filter(
+    (localItem: any) =>
+      (!localItem.userId ||
+        localItem.userId === userId ||
+        localItem.userId === "guest") &&
+      !localItem.synced
+  );
+
+  const preservedLocalUnsynced =
+    localUnsynced.filter(
+      (localItem: any) =>
+        !cloudLocalIds.has(localItem.id) &&
+        !cloudIds.has(localItem.cloudId)
+    );
+
+  const otherUsers = localData.filter(
+    (localItem: any) =>
+      localItem.userId &&
+      localItem.userId !== userId &&
+      localItem.userId !== "guest"
+  );
+
+  await setLocal(storageKey, [
+    ...otherUsers,
+    ...preservedLocalUnsynced,
+    ...cloudDocs,
   ]);
 
-  const cloudDocs = res.documents.map((doc) => {
-    const mapped: any = {
-      id: doc.$id,
-      ...doc,
-      synced: true,
-    };
-
-    if (coll === COMPANY_COLLECTION_ID) {
-      const logoCloud = doc.logoCloud || null;
-      mapped.logoCloud = logoCloud;
-
-      const localMatch = localData.find(
-        (localItem: any) => localItem.id === doc.$id
-      );
-
-      mapped.logoLocal =
-        localMatch?.logoLocal ||
-        (logoCloud ? getLogoPreviewUrl(logoCloud) : null);
-    }
-
-    return mapped;
-  });
-
-  const merged = [
-    ...cloudDocs,
-    ...localData.filter(
-      (localItem: any) => !cloudDocs.some((cloud) => cloud.id === localItem.id)
-    ),
-  ];
-
-  await setLocal(key, merged);
+  return {
+    downloaded: cloudDocs.length,
+    preservedLocalUnsynced:
+      preservedLocalUnsynced.length,
+  };
 }
 
-export async function syncAllData(userId: string) {
-  console.log("🔄 Starting full two-way sync...");
+/* -------------------------------------------------------------------------- */
+/*                        LEGACY MODULE WRAPPER                               */
+/* -------------------------------------------------------------------------- */
 
-  const stock = await getLocal("stock");
-  const sales = await getLocal("sales");
-  const returns = await getLocal("returns");
-  const profiles = await getLocal("companyprofile");
-  const stockMovements = await getLocal("stockMovements");
+async function syncLegacyModule(
+  config: LegacySyncConfig,
+  userId: string
+): Promise<{
+  upload: {
+    uploaded: number;
+    failed: number;
+  };
+  download: {
+    downloaded: number;
+    preservedLocalUnsynced: number;
+  };
+}> {
+  const local =
+    (await getLocal<any>(config.storageKey)) || [];
 
-  await uploadUnsynced(stock, STOCK_COLLECTION_ID, "stock", userId);
-  await uploadUnsynced(sales, SALE_COLLECTION_ID, "sales", userId);
-  await uploadUnsynced(returns, RETURN_COLLECTION_ID, "returns", userId);
-  await uploadUnsynced(profiles, COMPANY_COLLECTION_ID, "companyprofile", userId);
-
-  await uploadUnsynced(
-    stockMovements,
-    STOCK_MOVEMENT_COLLECTION_ID,
-    "stockMovements",
+  const upload = await uploadUnsynced(
+    local,
+    config.collectionId,
+    config.storageKey,
     userId
   );
 
-  await downloadCloudData(STOCK_COLLECTION_ID, "stock", userId);
-  await downloadCloudData(SALE_COLLECTION_ID, "sales", userId);
-  await downloadCloudData(RETURN_COLLECTION_ID, "returns", userId);
-  await downloadCloudData(COMPANY_COLLECTION_ID, "companyprofile", userId);
-
-  await downloadCloudData(
-    STOCK_MOVEMENT_COLLECTION_ID,
-    "stockMovements",
-    userId
+  const download = await downloadCloudData(
+    config.collectionId,
+    config.storageKey,
+    userId,
+    config.orderField
   );
 
-  console.log("✅ Full sync complete!");
+  return { upload, download };
+}
+
+/* -------------------------------------------------------------------------- */
+/*                           MODULE-SPECIFIC TASKS                             */
+/* -------------------------------------------------------------------------- */
+
+async function syncCompanyProfile(
+  userId: string
+) {
+  return syncLegacyModule(
+    {
+      module: "companyProfile",
+      collectionId: COMPANY_COLLECTION_ID,
+      storageKey: "companyprofile",
+    },
+    userId
+  );
+}
+
+async function syncStock(userId: string) {
+  return syncLegacyModule(
+    {
+      module: "stock",
+      collectionId: STOCK_COLLECTION_ID,
+      storageKey: "stock",
+    },
+    userId
+  );
+}
+
+async function syncStockMovements(
+  userId: string
+) {
+  return syncLegacyModule(
+    {
+      module: "stockMovements",
+      collectionId:
+        STOCK_MOVEMENT_COLLECTION_ID,
+      storageKey: "stockMovements",
+      orderField: "dateTime",
+    },
+    userId
+  );
+}
+
+async function syncSales(userId: string) {
+  return syncLegacyModule(
+    {
+      module: "sales",
+      collectionId: SALE_COLLECTION_ID,
+      storageKey: "sales",
+    },
+    userId
+  );
+}
+
+async function syncReturns(userId: string) {
+  return syncLegacyModule(
+    {
+      module: "returns",
+      collectionId: RETURN_COLLECTION_ID,
+      storageKey: "returns",
+    },
+    userId
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*                              TASK RUNNER                                   */
+/* -------------------------------------------------------------------------- */
+
+async function runSyncTask(
+  task: SyncTask
+): Promise<SyncModuleResult> {
+  const startedAt = nowISO();
+  const startedMs = Date.now();
+
+  console.log(`🔄 Syncing ${task.name}...`);
+
+  try {
+    const result = await task.run();
+    const finishedAt = nowISO();
+
+    console.log(`✅ ${task.name} sync complete`);
+
+    return {
+      module: task.name,
+      success: true,
+      startedAt,
+      finishedAt,
+      durationMs: Date.now() - startedMs,
+      result,
+    };
+  } catch (error) {
+    const finishedAt = nowISO();
+    const message = errorMessage(error);
+
+    console.error(
+      `❌ ${task.name} sync failed:`,
+      error
+    );
+
+    return {
+      module: task.name,
+      success: false,
+      startedAt,
+      finishedAt,
+      durationMs: Date.now() - startedMs,
+      error: message,
+    };
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                            FULL SYNC MANAGER                               */
+/* -------------------------------------------------------------------------- */
+
+export async function syncAllData(
+  userId: string,
+  onProgress?: SyncProgressCallback
+): Promise<FullSyncResult> {
+  if (!userId || userId === "guest") {
+    throw new Error(
+      "A valid signed-in user ID is required for cloud sync."
+    );
+  }
+
+  const startedAt = nowISO();
+  const startedMs = Date.now();
+
+  console.log("🔄 Starting StockTally full sync...");
+
+  /*
+   * Order matters:
+   *
+   * 1. Company profile supplies business defaults.
+   * 2. Stock must exist before stock movements.
+   * 3. Customers and suppliers must exist before
+   *    invoices, quotes and supplier purchases.
+   * 4. Supplier stock-in depends on stock and suppliers.
+   * 5. Invoices and quotes may reference customers.
+   * 6. Sales and returns run last because they may
+   *    reference stock and customer records.
+   */
+  const tasks: SyncTask[] = [
+    {
+      name: "companyProfile",
+      run: () => syncCompanyProfile(userId),
+    },
+    {
+      name: "stock",
+      run: () => syncStock(userId),
+    },
+    {
+      name: "stockMovements",
+      run: () => syncStockMovements(userId),
+    },
+    {
+      name: "customers",
+      run: () => syncCustomers(userId),
+    },
+    {
+      name: "suppliers",
+      run: () => syncSuppliers(userId),
+    },
+    {
+      name: "supplierStockIn",
+      run: () => syncSupplierStockIn(userId),
+    },
+    {
+      name: "invoices",
+      run: () => syncInvoices(userId),
+    },
+    {
+      name: "quotes",
+      run: () => syncQuotes(userId),
+    },
+    {
+      name: "sales",
+      run: () => syncSales(userId),
+    },
+    {
+      name: "returns",
+      run: () => syncReturns(userId),
+    },
+  ];
+
+  const modules: SyncModuleResult[] = [];
+
+  for (let index = 0; index < tasks.length; index += 1) {
+    const task = tasks[index];
+    const result = await runSyncTask(task);
+
+    modules.push(result);
+
+    onProgress?.(
+      index + 1,
+      tasks.length,
+      task.name,
+      result
+    );
+  }
+
+  const failed = modules.filter(
+    (module) => !module.success
+  ).length;
+
+  const finishedAt = nowISO();
+
+  const summary: FullSyncResult = {
+    success: failed === 0,
+    startedAt,
+    finishedAt,
+    durationMs: Date.now() - startedMs,
+    completed: modules.length - failed,
+    failed,
+    modules,
+  };
+
+  if (failed === 0) {
+    console.log("✅ StockTally full sync complete");
+  } else {
+    console.warn(
+      `⚠️ StockTally sync finished with ${failed} failed module(s)`
+    );
+  }
+
+  return summary;
+}
+
+/* -------------------------------------------------------------------------- */
+/*                         TARGETED MODULE SYNC                               */
+/* -------------------------------------------------------------------------- */
+
+export async function syncSelectedModules(
+  userId: string,
+  moduleNames: SyncModuleName[],
+  onProgress?: SyncProgressCallback
+): Promise<FullSyncResult> {
+  if (!userId || userId === "guest") {
+    throw new Error(
+      "A valid signed-in user ID is required for cloud sync."
+    );
+  }
+
+  const availableTasks: Record<
+    SyncModuleName,
+    () => Promise<unknown>
+  > = {
+    companyProfile: () =>
+      syncCompanyProfile(userId),
+    stock: () => syncStock(userId),
+    stockMovements: () =>
+      syncStockMovements(userId),
+    customers: () => syncCustomers(userId),
+    suppliers: () => syncSuppliers(userId),
+    supplierStockIn: () =>
+      syncSupplierStockIn(userId),
+    invoices: () => syncInvoices(userId),
+    quotes: () => syncQuotes(userId),
+    sales: () => syncSales(userId),
+    returns: () => syncReturns(userId),
+  };
+
+  const uniqueModules = [
+    ...new Set(moduleNames),
+  ];
+
+  const tasks: SyncTask[] = uniqueModules.map(
+    (name) => ({
+      name,
+      run: availableTasks[name],
+    })
+  );
+
+  const startedAt = nowISO();
+  const startedMs = Date.now();
+  const modules: SyncModuleResult[] = [];
+
+  for (let index = 0; index < tasks.length; index += 1) {
+    const task = tasks[index];
+    const result = await runSyncTask(task);
+
+    modules.push(result);
+
+    onProgress?.(
+      index + 1,
+      tasks.length,
+      task.name,
+      result
+    );
+  }
+
+  const failed = modules.filter(
+    (module) => !module.success
+  ).length;
+
+  return {
+    success: failed === 0,
+    startedAt,
+    finishedAt: nowISO(),
+    durationMs: Date.now() - startedMs,
+    completed: modules.length - failed,
+    failed,
+    modules,
+  };
 }

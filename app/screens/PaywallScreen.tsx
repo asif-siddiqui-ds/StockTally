@@ -1381,7 +1381,6 @@ import {
   Alert,
   Image,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -1392,6 +1391,7 @@ import Purchases, {
   PURCHASES_ERROR_CODE,
   PurchasesPackage,
 } from "react-native-purchases";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const PaywallScreen: React.FC = () => {
   const [packages, setPackages] = useState<PurchasesPackage[]>([]);

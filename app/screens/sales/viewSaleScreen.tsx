@@ -711,7 +711,7 @@ import {
   updateStockQuantity,
 } from '@/lib/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Print from 'expo-print';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
@@ -720,7 +720,6 @@ import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -750,7 +749,7 @@ const ViewSaleScreen = () => {
   const locale = companyProfile?.locale || 'en-GB';
 
   const money = (amount: number) =>
-    formatCurrencyFromProfile(amount, companyProfile);
+    formatCurrencyFromProfile(amount, companyProfile ?? undefined);
 
   const isBulkSale = type === 'bulk_sale' || !!batchId;
 
@@ -1093,7 +1092,6 @@ const ViewSaleScreen = () => {
   return (
     <ScreenWrapper>
       <LinearGradient colors={['#0d1b2a', '#1b263b', '#415a77']} style={styles.gradient}>
-        <SafeAreaView style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={styles.scroll}>
             <View style={styles.header}>
               <View style={styles.headerTop}>
@@ -1194,7 +1192,6 @@ const ViewSaleScreen = () => {
               </TouchableOpacity>
             </View>
           </ScrollView>
-        </SafeAreaView>
       </LinearGradient>
     </ScreenWrapper>
   );

@@ -4,21 +4,24 @@ import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
 import {
-    getReturnStockItems,
-    getStockItems,
+  getReturnStockItems,
+  getStockItems,
 } from "@/lib/storage";
+
 
 /* ─────────────────────────────
    Notification Handler
 ───────────────────────────── */
 
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
+  handleNotification: async (): Promise<Notifications.NotificationBehavior> => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
   }),
 });
+
 
 /* ─────────────────────────────
    Setup Permissions

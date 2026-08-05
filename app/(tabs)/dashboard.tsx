@@ -1,615 +1,6 @@
-// // app/screens/Dashboard.tsx
-
-// import ScreenWrapper from '@/components/ScreenWrapper';
-// import { useProUser } from '@/context/ProUserContext';
-// // import { useProUser } from '@/lib/ProUserContext';
-// import { getReturnItems, getSaleItems, getStockItems, ReturnItem, SaleItem, StockItem } from '@/lib/storage';
-// import * as FileSystem from 'expo-file-system';
-// import { LinearGradient } from 'expo-linear-gradient';
-// import * as Print from 'expo-print';
-// import { useRouter } from 'expo-router';
-// import React, { useEffect, useRef, useState } from 'react';
-// import { ActivityIndicator, Button, Dimensions, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-// import { BarChart, PieChart } from 'react-native-chart-kit';
-// // import DateTimePickerModal from 'react-native-modal-datetime-picker';
-// import * as Sharing from "expo-sharing";
-// import { Alert } from "react-native";
-// import ViewShot from 'react-native-view-shot';
-
-
-// let DateTimePickerModal: any = null;
-// if (Platform.OS !== 'web') {
-//   try {
-//     DateTimePickerModal = require('react-native-modal-datetime-picker').default;
-//   } catch (error) {
-//     console.warn('⚠️ DateTimePickerModal not available on this platform');
-//   }
-// }
-// const screenWidth = Dimensions.get('window').width || 400;
-
-// interface TableRowData {
-//   name: string;
-//   stock: number;
-//   return: number;
-//   sold: number;
-//   income: number;
-// }
-
-// const Dashboard = () => {
-//   const { isProUser, loading } = useProUser();
-  
-//   const router = useRouter();
-
-//   // 🚀 Redirect non-Pro users
-//   useEffect(() => {
-//     if (!loading && !isProUser) {
-//       router.replace('/paywall');
-//     }
-//   }, [loading, isProUser, router]);
-
-//   if (loading) {
-//     return <ActivityIndicator size="large" style={{ flex: 1, justifyContent: 'center' }} />;
-//   }
-
-//   if (!isProUser) {
-//     return null; // nothing shown while redirecting
-//   }
-
-//   // 🔽 State
-//   const [stockItems, setStockItems] = useState<StockItem[]>([]);
-//   const [saleItems, setSoldItems] = useState<SaleItem[]>([]);
-//   const [returnItems, setReturnItems] = useState<ReturnItem[]>([]);
-//   const [filter, setFilter] = useState<'all' | 'daily' | 'weekly' | 'monthly' | 'custom'>('all');
-//   const [tableData, setTableData] = useState<TableRowData[]>([]);
-//   const [totalIncome, setTotalIncome] = useState<number>(0);
-//   const [totalStock, setTotalStock] = useState<number>(0);
-//   const [totalReturn, setTotalReturn] = useState<number>(0);
-
-//   const [startDate, setStartDate] = useState(new Date());
-//   const [endDate, setEndDate] = useState(new Date());
-//   const [showStartPicker, setShowStartPicker] = useState(false);
-//   const [showEndPicker, setShowEndPicker] = useState(false);
-
-//   const barChartRef = useRef<ViewShot>(null);
-//   const incomePieChartRef = useRef<ViewShot>(null);
-//   const returnPieChartRef = useRef<ViewShot>(null);
-
-//   const safeNumber = (val: any): number => {
-//     const num = Number(val);
-//     return isFinite(num) ? num : 0;
-//   };
-
-//   useEffect(() => {
-//     const fetchData = async () => {
-//       const stock = await getStockItems();
-//       const sales = await getSaleItems();
-//       const returns = await getReturnItems();
-//       setStockItems(stock);
-//       setSoldItems(sales);
-//       setReturnItems(returns);
-//     };
-//     fetchData();
-//   }, []);
-
-//   useEffect(() => {
-//     if (stockItems.length | saleItems.length | returnItems.length) {
-//       updateTableData();
-//     }
-//   }, [stockItems, saleItems, filter, startDate, endDate]);
-
-//   const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
-//   const endOfDay   = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
-
-//   const weekRange = (ref: Date) => {
-//     // Week starts Sunday; change `weekStartsOn = 1` for Monday-start
-//     const weekStartsOn = 1;
-//     const d = new Date(ref);
-//     const diff = (d.getDay() - weekStartsOn + 7) % 7;
-//     const start = startOfDay(new Date(d.getFullYear(), d.getMonth(), d.getDate() - diff));
-//     const end   = endOfDay(new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6));
-//     return { start, end };
-//   };
-
-//   const monthRange = (ref: Date) => {
-//     const start = new Date(ref.getFullYear(), ref.getMonth(), 1, 0, 0, 0, 0);
-//     const end   = new Date(ref.getFullYear(), ref.getMonth() + 1, 0, 23, 59, 59, 999); // last day of month
-//     return { start, end };
-//   };
-
-
-//   const updateTableData = () => {
-//     // 1) Decide the date window
-//     let from: Date | null = null;
-//     let to: Date | null = null;
-//     const today = new Date();
-
-//     switch (filter) {
-//       case 'daily': {
-//         from = startOfDay(today);
-//         to   = endOfDay(today);
-//         break;
-//       }
-//       case 'weekly': {
-//         const { start, end } = weekRange(today);
-//         from = start;
-//         to   = end;
-//         break;
-//       }
-//       case 'monthly': {
-//         const { start, end } = monthRange(today);
-//         from = start;
-//         to   = end;
-//         break;
-//       }
-//       case 'custom': {
-//         // Normalize custom to full days
-//         from = startOfDay(startDate);
-//         to   = endOfDay(endDate);
-//         break;
-//       }
-//       case 'all':
-//       default:
-//         // keep as nulls = no date filtering
-//         break;
-//     }
-
-//     // 2) Filter sales by the window (if any)
-//     let filteredSales = saleItems;
-//     if (from && to) {
-//       const fromTs = from.getTime();
-//       const toTs   = to.getTime();
-//       filteredSales = saleItems.filter((s) => {
-//         const ts = new Date(s.date).getTime(); // works for ISO strings
-//         return ts >= fromTs && ts <= toTs;
-//       });
-//     }
-
-//     // 3) Build table rows from stock + filtered sales
-//     const names = [...new Set([
-//       ...stockItems.map(s => s.name),
-//       ...returnItems.map(s => s.name),
-//       ...filteredSales.map(s => s.name),
-//     ])];
-
-//     const data: TableRowData[] = names.map((name) => {
-//       const stockQty = Number(stockItems.find(s => s.name === name)?.quantity ?? 0) || 0;
-//       const returnQty = Number(returnItems.find(s => s.name === name)?.quantity ?? 0) || 0;
-//       const salesForItem = filteredSales.filter(s => s.name === name);
-//       const sold   = salesForItem.reduce((sum, s) => sum + (Number(s.quantity) || 0), 0);
-//       const income = salesForItem.reduce((sum, s) => sum + ((Number(s.price) || 0) * (Number(s.quantity) || 0)), 0);
-//       return { name, stock: stockQty, return: returnQty, sold, income };
-//     });
-
-//     setTableData(data);
-//     setTotalIncome(data.reduce((sum, r) => sum + r.income, 0));
-//     setTotalStock(data.reduce((sum, r) => sum + r.stock, 0));
-//     setTotalReturn(data.reduce((sum, r) => sum + r.return, 0));
-//   };
-
-
-//   const chartConfig = {
-//     backgroundGradientFrom: '#fff',
-//     backgroundGradientTo: '#fff',
-//     decimalPlaces: 2,
-//     color: (opacity = 1) => `rgba(70, 130, 180, ${opacity})`,
-//     labelColor: () => `#000`,
-//   };
-
-// const exportReport = async () => {
-//   try {
-//     if (!barChartRef.current || !incomePieChartRef.current || !returnPieChartRef.current) {
-//       Alert.alert("Error", "Charts not ready yet.");
-//       return;
-//     }
-//     // 🖼️ Capture chart image
-//     const incomePieUri = await incomePieChartRef.current.capture();
-//     if (!incomePieUri) throw new Error("Failed to capture chart.");
-
-//     // 🖼️ Capture chart image
-//     const returnPieUri = await returnPieChartRef.current.capture();
-//     if (!returnPieUri) throw new Error("Failed to capture chart.");
-
-//     // 🖼️ Capture chart image
-//     const barUri = await barChartRef.current.capture();
-//     if (!barUri) throw new Error("Failed to capture chart.");
-
-//     // 🧾 Generate HTML
-//     const html = `
-//       <html>
-//         <body style="font-family: Arial;">
-//           <h1>Dashboard Report</h1>
-//           <h2>Total Income: £${totalIncome.toFixed(2)}</h2>
-//           <h2>Total Stock: ${totalStock}</h2>
-//           <h2>Total Returns: ${totalReturn}</h2>
-//           <img src="${barUri}" style="width:100%;" />
-//           <table border="1" cellspacing="0" cellpadding="4" style="margin-top: 20px; width: 100%;">
-//             <tr><th>Item</th><th>Stock</th><th>Sold</th><th>Income (£)</th></tr>
-//             ${tableData
-//               .map(
-//                 (r) =>
-//                   `<tr>
-//                     <td>${r.name}</td>
-//                     <td>${r.stock}</td>
-//                     <td>${r.sold}</td>
-//                     <td>£${r.income.toFixed(2)}</td>
-//                   </tr>`
-//               )
-//               .join("")}
-//           </table>
-//            <img src="${incomePieUri}" style="width:100%;" />
-//            <img src="${returnPieUri}" style="width:100%;" />
-//         </body>
-//       </html>
-      
-//     `;
-
-//     // 📄 Create PDF file
-//     const { uri } = await Print.printToFileAsync({ html });
-//     if (!uri) throw new Error("Failed to create PDF.");
-
-//     const newPath = `${FileSystem.documentDirectory}DashboardReport.pdf`;
-//     await FileSystem.moveAsync({ from: uri, to: newPath });
-
-
-//     // 📤 Share the PDF (this opens iOS share sheet)
-//     if (await Sharing.isAvailableAsync()) {
-//       await Sharing.shareAsync(newPath);
-//     } else {
-//       Alert.alert("File saved at:", newPath);
-//     }
-//   } catch (err: any) {
-//     console.error("❌ exportReport error:", err);
-//     Alert.alert("Export Failed", err.message || "Could not generate report.");
-//   }
-// };
-
-
-//   const formatDate = (date: Date) => {
-//     return new Intl.DateTimeFormat('en-GB', {
-//       day: '2-digit',
-//       month: 'short',
-//       year: 'numeric',
-//     }).format(date);
-//   };
-
-//   const filteredIncomeData = tableData.filter(row => row.sold !== 0);
-//   const filteredStockData = tableData.filter(row => row.stock !== 0);
-//   const filteredReturnData = tableData.filter(row => row.return !== 0);
-
-//   const chartColors = [
-//   '#4CAF50', // green
-//   '#FF9800', // orange
-//   '#2196F3', // blue
-//   '#9C27B0', // purple
-//   '#FF5722', // deep orange
-//   '#795548', // brown
-//   '#607D8B', // blue grey
-//   '#00BCD4', // cyan
-//   '#8BC34A', // light green
-//   '#E91E63', // pink
-//   '#3F51B5', // indigo
-//   '#FFC107', // amber
-// ];
-
-//   return (
-    
-//     <ScreenWrapper>
-//     <LinearGradient colors={["#0d1b2a", "#1b263b", "#415a77"]} style={styles.gradient}>
-
-//       <ScrollView contentContainerStyle={{ padding: 16 }}>
-//         <Text style={styles.title}>📊 Dashboard</Text>
-
-//         <Text style={styles.summary}>Total Stock: {totalStock} | Total Return: {totalReturn}</Text>
-//         {/* <Text style={styles.summary}>Total Return: {totalReturn}</Text> */}
-//          <Text style={styles.summary}>Total Income: £{totalIncome.toFixed(2)}</Text>
-
-//                 {/* Filter Buttons */}
-//         <View style={styles.filterRow}>
-//           {[
-//             { label: "All", value: "all" },
-//             { label: "Today", value: "daily" },
-//             { label: "Week", value: "weekly" },
-//             { label: "Month", value: "monthly" },
-//             { label: "Custom", value: "custom" },
-//           ].map(option => (
-//             <TouchableOpacity
-//               key={option.value}
-//               style={[
-//                 styles.filterButton,
-//                 filter === option.value && styles.filterButtonActive
-//               ]}
-//               onPress={() => setFilter(option.value as any)}
-//             >
-//               <Text
-//                 style={[
-//                   styles.filterButtonText,
-//                   filter === option.value && styles.filterButtonTextActive
-//                 ]}
-//               >
-//                 {option.label}
-//               </Text>
-//             </TouchableOpacity>
-//           ))}
-//         </View>
-
-//         {/* Custom Range Picker (only if Custom selected) */}
-//         {filter === 'custom' && DateTimePickerModal && (
-//           <View style={styles.dateRangeRow}>
-//             {/* Start Date */}
-//             <TouchableOpacity
-//               style={[styles.dateColumn, startDate && styles.dateColumnSelected]}
-//               onPress={() => setShowStartPicker(true)}
-//             >
-//               <Text style={styles.dateBtn}>Select Start Date</Text>
-//               <Text style={styles.dateValue}>{formatDate(startDate)}</Text>
-//             </TouchableOpacity>
-
-//             <View style={styles.dateDivider} />
-
-//             {/* End Date */}
-//             <TouchableOpacity
-//               style={[styles.dateColumn, endDate && styles.dateColumnSelected]}
-//               onPress={() => setShowEndPicker(true)}
-//             >
-//               <Text style={styles.dateBtn}>Select End Date</Text>
-//               <Text style={styles.dateValue}>{formatDate(endDate)}</Text>
-//             </TouchableOpacity>
-
-//             {/* Date Pickers */}
-//             <DateTimePickerModal
-//               isVisible={showStartPicker}
-//               mode="date"
-//               onConfirm={(date) => {
-//                 setShowStartPicker(false);
-//                 if (date) setStartDate(date);
-//               }}
-//               onCancel={() => setShowStartPicker(false)}
-//             />
-//             <DateTimePickerModal
-//               isVisible={showEndPicker}
-//               mode="date"
-//               onConfirm={(date) => {
-//                 setShowEndPicker(false);
-//                 if (date) setEndDate(date);
-//               }}
-//               onCancel={() => setShowEndPicker(false)}
-//             />
-//           </View>
-//         )}
-//         <Button title="Export PDF Report" onPress={exportReport} />
-
-//         <View style={styles.table}>
-//         <View style={styles.tableHeader}>
-//           <Text style={styles.cell}>Item</Text>
-//           <Text style={styles.cell}>Sold</Text>
-//           <Text style={styles.cell}>Income</Text>
-//         </View>
-
-//         {filteredIncomeData.map((row, index) => (
-//           <View
-//             key={index}
-//             style={[styles.tableRow, index % 2 ? styles.odd : styles.even]}
-//           >
-//             <Text style={styles.cell}>{row.name}</Text>
-//             <Text style={styles.cell}>{row.sold}</Text>
-//             <Text style={styles.cell}>£{row.income.toFixed(2)}</Text>
-//           </View>
-//         ))}
-//       </View>
-//       <ViewShot ref={incomePieChartRef} options={{ format: 'jpg', quality: 0.9 }}>
-//         <Text style={styles.chartTitle}>Income per Item</Text>
-//         <PieChart
-//           data={filteredIncomeData.map((d, i) => ({
-//             name: d.name,
-//             population: d.income,
-//             color: chartColors[i % chartColors.length],
-//             legendFontColor: "#4484f3ff",
-//             legendFontSize: 12,
-//           }))}
-//           width={screenWidth - 16}
-//           height={220}
-//           chartConfig={chartConfig}
-//           accessor={"population"}
-//           backgroundColor={"transparent"}
-//           paddingLeft={"15"}
-//           absolute={false} // ensures no raw values shown
-//           hasLegend={true}
-//           center={[0, 0]} // keep centered
-//         />
-          
-//       </ViewShot>       
-                
-//       <Text style={styles.chartTitle}>Stock per Item</Text>
-
-//         <View style={styles.table}>
-//           <View style={styles.tableHeader}>
-//             <Text style={styles.cell}>Item</Text>
-//             <Text style={styles.cell}>Stock</Text>
-//             <Text style={styles.cell}>Return</Text>
-//           </View>
-//           {filteredStockData.map((row, index) => (
-//             <View key={index} style={[styles.tableRow, index % 2 ? styles.odd : styles.even]}>
-//               <Text style={styles.cell}>{row.name}</Text>
-//               <Text style={styles.cell}>{row.stock}</Text>
-//               <Text style={styles.cell}>{row.return}</Text>
-//             </View>
-//           ))}
-//         </View>
-//         <ViewShot ref={barChartRef} options={{ format: 'jpg', quality: 0.9 }}>
-
-//         {/* Stock as Pie Chart */}
-//           {/* <Text style={styles.chartTitle}>Stock per Item</Text> */}
-//           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-//             <BarChart
-//               data={{
-//                 labels: filteredStockData.map(d => d.name),
-//                 datasets: [{ data: filteredStockData.map(d => safeNumber(d.stock)) }],
-//               }}
-//               width={Math.max(screenWidth, tableData.length * 80)} // 80px per item
-//               height={300}
-//               chartConfig={{
-//                 backgroundGradientFrom: "#1b263b", 
-//                 backgroundGradientTo: "#415a77",
-//                 decimalPlaces: 0,
-//                 color: (opacity = 1) => `rgba(255, 255, 255, ${opacity * 0.9})`,
-//                 labelColor: () => "#f0f4f8",
-//               }}
-//               style={{ borderRadius: 8   }}
-//               verticalLabelRotation={45}
-//               yAxisLabel={""}
-//               yAxisSuffix={""}
-//             />
-//           </ScrollView>
-//         </ViewShot>
-
-//         <ViewShot ref={returnPieChartRef} options={{ format: 'jpg', quality: 0.9 }}>
-//           <Text style={styles.chartTitle}>Return per Item</Text>
-//           <PieChart
-//               data={filteredReturnData.map((d, i) => ({
-//                 name: d.name,
-//                 population: d.return,
-//                 color: chartColors[i % chartColors.length],
-//                 legendFontColor: "#4484f3ff",
-//                 legendFontSize: 12,
-//               }))}
-//               width={screenWidth - 16}
-//               height={220}
-//               chartConfig={chartConfig}
-//               accessor={"population"}
-//               backgroundColor={"transparent"}
-//               paddingLeft={"15"}
-//               absolute={false} // ensures no raw values shown
-//               hasLegend={true}
-//               center={[0, 0]} // keep centered
-//             />
-          
-//         </ViewShot>  
-//       </ScrollView>
-//     </LinearGradient>
-//     </ScreenWrapper>
-    
-//   );
-// };
-
-// const styles = StyleSheet.create({
-//   gradient: { flex: 1 },
-//   title: { color: "#f0f4f8",fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginVertical: 10 },
-//   summary: { color: "#f0f4f8",fontSize: 16, textAlign: 'center', marginVertical: 4 },
-//   picker: { marginVertical: 10, backgroundColor: '#eee' },
-//   chart: { marginVertical: 10, borderRadius: 8 },
-//   table: { marginVertical: 10 },
-//   tableHeader: { flexDirection: 'row', backgroundColor: '#4c9eafff', padding: 6 },
-//   tableRow: { flexDirection: 'row', padding: 6 },
-//   cell: { flex: 1, textAlign: 'center' },
-//   even: { backgroundColor: '#f9f9f9' },
-//   odd: { backgroundColor: '#eee' },
-
-//   // Custom Range Styles
-//   dateRangeRow: {
-//     flexDirection: 'row',
-//     marginVertical: 12,
-//     borderWidth: 1,
-//     borderColor: '#ddd',
-//     borderRadius: 10,
-//     overflow: 'hidden',
-//   },
-//   dateColumn: {
-//     flex: 1,
-//     alignItems: 'center',
-//     paddingVertical: 12,
-//     backgroundColor: '#fafafa',
-//   },
-//   dateColumnSelected: {
-//     backgroundColor: '#e6f2ff', // light blue highlight
-//   },
-//   dateDivider: {
-//     width: 1,
-//     backgroundColor: '#ddd',
-//     height: '100%',
-//   },
-//   dateBtn: {
-//     color: '#007AFF',
-//     fontSize: 16,
-//     fontWeight: '500',
-//     marginBottom: 4,
-//   },
-//   dateValue: {
-//     fontSize: 14,
-//     color: '#333',
-//   },
-//   chartTitle: {
-//     fontSize: 18,
-//     fontWeight: '600',
-//     textAlign: 'center',
-//     marginTop: 10,
-//     color: "#4484f3ff"
-//   },
-//   filterRow: {
-//     flexDirection: 'row',
-//     justifyContent: 'space-around',
-//     marginVertical: 12,
-//   },
-
-//   filterButton: {
-//     flex: 1,
-//     marginHorizontal: 4,
-//     paddingVertical: 8,
-//     borderRadius: 6,
-//     borderWidth: 1,
-//     borderColor: '#ccc',
-//     backgroundColor: '#f9f9f9',
-//     alignItems: 'center',
-//   },
-
-//   filterButtonActive: {
-//     backgroundColor: '#007AFF',
-//     borderColor: '#007AFF',
-//   },
-
-//   filterButtonText: {
-//     fontSize: 14,
-//     color: '#333',
-//     fontWeight: '500',
-//   },
-
-//   filterButtonTextActive: {
-//     color: '#fff',
-//     fontWeight: '600',
-//   },
-
-//   legendContainer: {
-//   flexDirection: 'row',
-//   flexWrap: 'wrap',
-//   justifyContent: 'center',
-//   marginVertical: 10,
-// },
-// legendItem: {
-//   flexDirection: 'row',
-//   alignItems: 'center',
-//   marginHorizontal: 6,
-//   marginVertical: 4,
-// },
-// legendColor: {
-//   width: 14,
-//   height: 14,
-//   borderRadius: 3,
-//   marginRight: 6,
-// },
-// legendText: {
-//   fontSize: 13,
-//   color: '#333',
-// },
-
-
-// });
-
-// export default Dashboard;
-
-// app/screens/Dashboard.tsx
-
-import ScreenWrapper from '@/components/ScreenWrapper';
-import { useCompanyProfile } from '@/context/CompanyProfileContext';
-import { useProUser } from '@/context/ProUserContext';
+import ScreenWrapper from "@/components/ScreenWrapper";
+import { useCompanyProfile } from "@/context/CompanyProfileContext";
+import { useSubscription } from "@/context/SubscriptionContext";
 import { formatCurrencyFromProfile } from "@/lib/currency";
 import {
   getReturnItems,
@@ -618,1063 +9,2592 @@ import {
   ReturnItem,
   SaleItem,
   StockItem,
-} from '@/lib/storage';
-import * as FileSystem from 'expo-file-system';
-import { LinearGradient } from 'expo-linear-gradient';
-import * as Print from 'expo-print';
-import { useRouter } from 'expo-router';
-import * as Sharing from 'expo-sharing';
-import React, { useEffect, useMemo, useState } from 'react';
+} from "@/lib/storage";
+import { getSupplierStockInRecords } from "@/lib/supplierStockInStorage";
+import { useFocusEffect } from "@react-navigation/native";
+import * as FileSystem from "expo-file-system/legacy";
+import { LinearGradient } from "expo-linear-gradient";
+import * as Print from "expo-print";
+import { router } from "expo-router";
+import * as Sharing from "expo-sharing";
+import React, {
+  useCallback,
+  useMemo,
+  useState,
+} from "react";
 import {
+  ActivityIndicator,
   Alert,
   Dimensions,
   Platform,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
-} from 'react-native';
-
-
+  View,
+} from "react-native";
 
 let BarChart: any = null;
-let PieChart: any = null;
 
 try {
-  const charts = require("react-native-chart-kit");
-  BarChart = charts.BarChart;
-  PieChart = charts.PieChart;
-} catch (e) {
-  console.warn("Chart kit failed to load:", e);
+  BarChart =
+    require("react-native-chart-kit").BarChart;
+} catch (error) {
+  console.warn(
+    "react-native-chart-kit unavailable:",
+    error,
+  );
 }
-// let BarChart: any = null;
-// let PieChart: any = null;
-
-// if (Platform.OS === "ios") {
-//   try {
-//     const charts = require("react-native-chart-kit");
-//     BarChart = charts.BarChart;
-//     PieChart = charts.PieChart;
-//   } catch (e) {
-//     console.warn("Chart kit failed to load:", e);
-//   }
-// }
 
 let DateTimePickerModal: any = null;
 
-if (Platform.OS !== 'web') {
+if (Platform.OS !== "web") {
   try {
-    DateTimePickerModal = require('react-native-modal-datetime-picker').default;
+    DateTimePickerModal =
+      require("react-native-modal-datetime-picker").default;
   } catch {
-    console.warn('DateTimePickerModal not available');
+    console.warn(
+      "DateTimePickerModal unavailable",
+    );
   }
 }
 
-const screenWidth = Dimensions.get('window').width || 400;
+const SCREEN_WIDTH =
+  Dimensions.get("window").width || 400;
 
-type FilterType = 'all' | 'daily' | 'weekly' | 'monthly' | 'custom';
+type FilterType =
+  | "daily"
+  | "weekly"
+  | "monthly"
+  | "all"
+  | "custom";
+
+type SupplierStockInLike = {
+  id: string;
+  stockItemId?: string;
+  supplierId?: string;
+  supplierName?: string;
+  totalCost?: number;
+  paymentStatus?: "paid" | "unpaid";
+  date?: string;
+};
+
+type TopSeller = {
+  name: string;
+  quantity: number;
+  revenue: number;
+};
+
+const safeNumber = (value: unknown): number => {
+  const result = Number(value);
+  return Number.isFinite(result) ? result : 0;
+};
+
+const startOfDay = (date: Date) =>
+  new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+    0,
+    0,
+    0,
+    0,
+  );
+
+const endOfDay = (date: Date) =>
+  new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+    23,
+    59,
+    59,
+    999,
+  );
+
+const getDateValue = (value: unknown): number => {
+  const result = new Date(
+    String(value || ""),
+  ).getTime();
+
+  return Number.isFinite(result) ? result : 0;
+};
+
+const escapeHtml = (value: unknown): string =>
+  String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 
 const Dashboard = () => {
-  const { isProUser, loading } = useProUser();
-  const router = useRouter();
+  const {
+    permissions,
+    loading: subscriptionLoading,
+  } = useSubscription();
+  const { companyProfile } =
+    useCompanyProfile();
 
-  const [stockItems, setStockItems] = useState<StockItem[]>([]);
-  const [soldItems, setSoldItems] = useState<SaleItem[]>([]);
-  const [returnItems, setReturnItems] = useState<ReturnItem[]>([]);
+  const [stockItems, setStockItems] = useState<
+    StockItem[]
+  >([]);
+  const [saleItems, setSaleItems] = useState<
+    SaleItem[]
+  >([]);
+  const [returnItems, setReturnItems] =
+    useState<ReturnItem[]>([]);
+  const [
+    supplierStockIn,
+    setSupplierStockIn,
+  ] = useState<SupplierStockInLike[]>([]);
 
-  const [filter, setFilter] = useState<FilterType>('all');
-  const [startDate, setStartDate] = useState(new Date());
-  const [endDate, setEndDate] = useState(new Date());
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showEndPicker, setShowEndPicker] = useState(false);
-  const { companyProfile } = useCompanyProfile();
-  const [supplierCredit, setSupplierCredit] = useState(0);
-  const [customerCredit, setCustomerCredit] = useState(0);
+  const [filter, setFilter] =
+    useState<FilterType>("monthly");
+  const [startDate, setStartDate] = useState(
+    new Date(),
+  );
+  const [endDate, setEndDate] = useState(
+    new Date(),
+  );
+  const [showStartPicker, setShowStartPicker] =
+    useState(false);
+  const [showEndPicker, setShowEndPicker] =
+    useState(false);
 
+  const [refreshing, setRefreshing] =
+    useState(false);
+  const [dataLoading, setDataLoading] =
+    useState(true);
+  const [exporting, setExporting] =
+    useState(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const stock = await getStockItems();
-      const sales = await getSaleItems();
-      const returns = await getReturnItems();
+  const currency = useCallback(
+    (value: number) =>
+      formatCurrencyFromProfile(
+        value,
+        companyProfile ?? undefined,
+      ),
+    [companyProfile],
+  );
 
-      setStockItems(stock || []);
-      setSoldItems(sales || []);
-      setReturnItems(returns || []);
-    };
+  const loadDashboard = useCallback(
+    async (showRefresh = false) => {
+      try {
+        if (showRefresh) {
+          setRefreshing(true);
+        } else {
+          setDataLoading(true);
+        }
 
-    fetchData();
-  }, []);
+        const [
+          stock,
+          sales,
+          returns,
+          purchases,
+        ] = await Promise.all([
+          getStockItems(),
+          getSaleItems(),
+          getReturnItems(),
+          getSupplierStockInRecords(),
+        ]);
 
-  const safeNumber = (value: any) => {
-    const num = Number(value);
-    return Number.isFinite(num) ? num : 0;
-  };
+        setStockItems(stock || []);
+        setSaleItems(sales || []);
+        setReturnItems(returns || []);
+        setSupplierStockIn(
+          (purchases ||
+            []) as SupplierStockInLike[],
+        );
+      } catch (error) {
+        console.error(
+          "Dashboard load error:",
+          error,
+        );
+        Alert.alert(
+          "Dashboard Error",
+          "Some business data could not be loaded.",
+        );
+      } finally {
+        setRefreshing(false);
+        setDataLoading(false);
+      }
+    },
+    [],
+  );
 
-  const startOfDay = (d: Date) =>
-    new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+  useFocusEffect(
+    useCallback(() => {
+      loadDashboard();
+    }, [loadDashboard]),
+  );
 
-  const endOfDay = (d: Date) =>
-    new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+  const dateRange = useMemo(() => {
+    const now = new Date();
 
-  const weekRange = (ref: Date) => {
-    const weekStartsOn = 1;
-    const d = new Date(ref);
-    const diff = (d.getDay() - weekStartsOn + 7) % 7;
+    if (filter === "daily") {
+      return {
+        from: startOfDay(now),
+        to: endOfDay(now),
+        label: "Today",
+      };
+    }
 
-    const from = startOfDay(
-      new Date(d.getFullYear(), d.getMonth(), d.getDate() - diff)
-    );
+    if (filter === "weekly") {
+      const dayOffset =
+        (now.getDay() - 1 + 7) % 7;
+      const from = startOfDay(
+        new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate() - dayOffset,
+        ),
+      );
 
-    const to = endOfDay(
-      new Date(from.getFullYear(), from.getMonth(), from.getDate() + 6)
-    );
+      return {
+        from,
+        to: endOfDay(
+          new Date(
+            from.getFullYear(),
+            from.getMonth(),
+            from.getDate() + 6,
+          ),
+        ),
+        label: "This week",
+      };
+    }
 
-    return { from, to };
-  };
+    if (filter === "monthly") {
+      return {
+        from: new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          1,
+          0,
+          0,
+          0,
+          0,
+        ),
+        to: new Date(
+          now.getFullYear(),
+          now.getMonth() + 1,
+          0,
+          23,
+          59,
+          59,
+          999,
+        ),
+        label: "This month",
+      };
+    }
 
-  const monthRange = (ref: Date) => {
-    const from = new Date(ref.getFullYear(), ref.getMonth(), 1, 0, 0, 0, 0);
-    const to = new Date(ref.getFullYear(), ref.getMonth() + 1, 0, 23, 59, 59, 999);
+    if (filter === "custom") {
+      const first =
+        startDate <= endDate
+          ? startDate
+          : endDate;
+      const last =
+        startDate <= endDate
+          ? endDate
+          : startDate;
 
-    return { from, to };
-  };
+      return {
+        from: startOfDay(first),
+        to: endOfDay(last),
+        label: `${formatDate(first)} – ${formatDate(
+          last,
+        )}`,
+      };
+    }
 
-  const getDateRange = () => {
-    const today = new Date();
-
-    if (filter === 'daily') return { from: startOfDay(today), to: endOfDay(today) };
-    if (filter === 'weekly') return weekRange(today);
-    if (filter === 'monthly') return monthRange(today);
-    if (filter === 'custom') return { from: startOfDay(startDate), to: endOfDay(endDate) };
-
-    return { from: null, to: null };
-  };
-
-  const filteredStockItems = useMemo(() => {
-    const { from, to } = getDateRange();
-
-    if (!from || !to) return stockItems;
-
-    return stockItems.filter((item) => {
-      const itemDate = new Date(item.date).getTime();
-      return itemDate >= from.getTime() && itemDate <= to.getTime();
-    });
-  }, [stockItems, filter, startDate, endDate]);
-
-  const filteredReturns = useMemo(() => {
-    const { from, to } = getDateRange();
-
-    if (!from || !to) return returnItems;
-
-    return returnItems.filter((item) => {
-      const itemDate = new Date(item.date).getTime();
-      return itemDate >= from.getTime() && itemDate <= to.getTime();
-    });
-  }, [returnItems, filter, startDate, endDate]);
-
-  const filteredSoldItems = useMemo(() => {
-    const { from, to } = getDateRange();
-
-    if (!from || !to) return soldItems;
-
-    return soldItems.filter((item) => {
-      const itemDate = new Date(item.date).getTime();
-      return itemDate >= from.getTime() && itemDate <= to.getTime();
-    });
-  }, [soldItems, filter, startDate, endDate]);
-
-  const dashboardStats = useMemo(() => {
-    const totalStockItems = stockItems.length;
-
-    const totalStockQuantity = stockItems.reduce(
-      (sum, item) => sum + safeNumber(item.quantity),
-      0
-    );
-
-    const totalStockValue = stockItems.reduce(
-      (sum, item) =>
-        sum + safeNumber(item.quantity) * safeNumber((item as any).costPrice),
-      0
-    );
-
-    const lowStockItems = stockItems.filter(
-      (item) =>
-        item.lowStockAlert !== undefined &&
-        safeNumber(item.quantity) > 0 &&
-        safeNumber(item.quantity) <= safeNumber(item.lowStockAlert)
-    );
-
-    const outOfStockItems = stockItems.filter(
-      (item) => safeNumber(item.quantity) <= 0
-    );
-
-    const totalReturns = filteredReturns.reduce(
-      (sum, item) => sum + safeNumber(item.quantity),
-      0
-    );
-
-    const totalSold = filteredSoldItems.reduce(
-      (sum, item) => sum + safeNumber(item.quantity),
-      0
-    );
-
-    const soldValue = filteredSoldItems.reduce(
-      (sum, item) => sum + safeNumber(item.quantity) * safeNumber(item.price),
-      0
-    );
-
-    const reorderQuantity = lowStockItems.reduce((sum, item) => {
-      const ideal = safeNumber(item.idealStockLevel || item.lowStockAlert || 0);
-      return sum + Math.max(ideal - safeNumber(item.quantity), 0);
-    }, 0);
-
-    const reorderValue = lowStockItems.reduce((sum, item) => {
-      const ideal = safeNumber(item.idealStockLevel || item.lowStockAlert || 0);
-      const qtyToOrder = Math.max(ideal - safeNumber(item.quantity), 0);
-      return sum + qtyToOrder * safeNumber(item.costPrice);
-    }, 0);
-
-    const supplierCredit = stockItems
-    .filter((item) => item.paid === false)
-    .reduce(
-      (sum, item) =>
-        sum + Number(item.costPrice || 0) * Number(item.quantity || 0),
-      0
-    );
-
-  const customerCredit = soldItems
-    .filter((sale) => sale.paid === false)
-    .reduce(
-      (sum, sale) =>
-        sum + Number(sale.price || 0) * Number(sale.quantity || 0),
-      0
-    );
-
-    
     return {
-      totalStockItems,
-      totalStockQuantity,
-      totalStockValue,
+      from: null,
+      to: null,
+      label: "All time",
+    };
+  }, [filter, startDate, endDate]);
+
+  const isWithinPeriod = useCallback(
+    (dateValue: unknown): boolean => {
+      if (!dateRange.from || !dateRange.to) {
+        return true;
+      }
+
+      const timestamp =
+        getDateValue(dateValue);
+
+      return (
+        timestamp >= dateRange.from.getTime() &&
+        timestamp <= dateRange.to.getTime()
+      );
+    },
+    [dateRange],
+  );
+
+  const periodSales = useMemo(
+    () =>
+      saleItems.filter((sale) =>
+        isWithinPeriod(sale.date),
+      ),
+    [saleItems, isWithinPeriod],
+  );
+
+  const periodReturns = useMemo(
+    () =>
+      returnItems.filter((item) =>
+        isWithinPeriod(item.date),
+      ),
+    [returnItems, isWithinPeriod],
+  );
+
+  const metrics = useMemo(() => {
+    const revenue = periodSales.reduce(
+      (total, sale) =>
+        total +
+        safeNumber(sale.quantity) *
+          safeNumber(sale.price),
+      0,
+    );
+
+    const unitsSold = periodSales.reduce(
+      (total, sale) =>
+        total + safeNumber(sale.quantity),
+      0,
+    );
+
+    const returnQuantity =
+      periodReturns.reduce(
+        (total, item) =>
+          total + safeNumber(item.quantity),
+        0,
+      );
+
+    const currentQuantity =
+      stockItems.reduce(
+        (total, item) =>
+          total + safeNumber(item.quantity),
+        0,
+      );
+
+    const stockCostValue =
+      stockItems.reduce(
+        (total, item) =>
+          total +
+          safeNumber(item.quantity) *
+            safeNumber(
+              (item as any).costPrice,
+            ),
+        0,
+      );
+
+    const lowStockItems =
+      stockItems.filter((item) => {
+        const quantity = safeNumber(
+          item.quantity,
+        );
+        const threshold = safeNumber(
+          (item as any).lowStockAlert,
+        );
+
+        return (
+          threshold > 0 &&
+          quantity > 0 &&
+          quantity <= threshold
+        );
+      });
+
+    const outOfStockItems =
+      stockItems.filter(
+        (item) =>
+          safeNumber(item.quantity) <= 0,
+      );
+
+    const supplierOutstanding =
+      supplierStockIn
+        .filter(
+          (record) =>
+            record.paymentStatus ===
+            "unpaid",
+        )
+        .reduce(
+          (total, record) =>
+            total +
+            safeNumber(record.totalCost),
+          0,
+        );
+
+    const customerOutstanding =
+      saleItems
+        .filter(
+          (sale) => sale.paid === false,
+        )
+        .reduce(
+          (total, sale) =>
+            total +
+            safeNumber(sale.quantity) *
+              safeNumber(sale.price),
+          0,
+        );
+
+    const unpaidSaleGroups = new Set(
+      saleItems
+        .filter(
+          (sale) => sale.paid === false,
+        )
+        .map(
+          (sale: any) =>
+            sale.salesId ||
+            `${sale.buyerName}-${sale.date}`,
+        ),
+    ).size;
+
+    const salesGroups = new Set(
+      periodSales.map(
+        (sale: any) =>
+          sale.salesId ||
+          `${sale.buyerName}-${sale.date}`,
+      ),
+    ).size;
+
+    const averageSale =
+      salesGroups > 0
+        ? revenue / salesGroups
+        : 0;
+
+    return {
+      revenue,
+      unitsSold,
+      returnQuantity,
+      currentQuantity,
+      stockCostValue,
       lowStockItems,
       outOfStockItems,
-      totalReturns,
-      totalSold,
-      soldValue,
-      reorderQuantity,
-      reorderValue,
-      supplierCredit,
-      customerCredit
+      supplierOutstanding,
+      customerOutstanding,
+      unpaidSaleGroups,
+      salesGroups,
+      averageSale,
     };
-  }, [stockItems, returnItems, soldItems]);
+  }, [
+    periodSales,
+    periodReturns,
+    saleItems,
+    stockItems,
+    supplierStockIn,
+  ]);
 
-  const categoryData = useMemo(() => {
-    const map: Record<string, number> = {};
+  const topSellers = useMemo<TopSeller[]>(
+    () => {
+      const grouped = new Map<
+        string,
+        TopSeller
+      >();
 
-    stockItems.forEach((item) => {
-      const category = item.category || 'Uncategorised';
-      map[category] = (map[category] || 0) + safeNumber(item.quantity);
-    });
+      periodSales.forEach((sale) => {
+        const name =
+          sale.name || "Unnamed item";
+        const existing =
+          grouped.get(name) || {
+            name,
+            quantity: 0,
+            revenue: 0,
+          };
 
-    return Object.entries(map).map(([category, quantity]) => ({
-      category,
-      quantity,
-    }));
-  }, [stockItems]);
+        existing.quantity += safeNumber(
+          sale.quantity,
+        );
+        existing.revenue +=
+          safeNumber(sale.quantity) *
+          safeNumber(sale.price);
 
-  const topStockValueItems = useMemo(() => {
-    return [...stockItems]
-      .map((item) => ({
-        ...item,
-        stockValue: safeNumber(item.quantity) * safeNumber(item.costPrice),
-      }))
-      .filter((item) => item.stockValue > 0)
-      .sort((a, b) => b.stockValue - a.stockValue)
-      .slice(0, 8);
-  }, [stockItems]);
+        grouped.set(name, existing);
+      });
 
-  const recentStockItems = useMemo(() => {
-    return [...filteredStockItems]
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 8);
-  }, [filteredStockItems]);
+      return [...grouped.values()]
+        .sort(
+          (a, b) =>
+            b.revenue - a.revenue,
+        )
+        .slice(0, 6);
+    },
+    [periodSales],
+  );
 
-  const chartColors = [
-    '#22c55e',
-    '#3b82f6',
-    '#f97316',
-    '#a855f7',
-    '#ef4444',
-    '#14b8a6',
-    '#eab308',
-    '#6366f1',
-  ];
+  const highestValueStock = useMemo(
+    () =>
+      stockItems
+        .map((item) => ({
+          id: item.id,
+          name: item.name || "Unnamed item",
+          quantity: safeNumber(
+            item.quantity,
+          ),
+          value:
+            safeNumber(item.quantity) *
+            safeNumber(
+              (item as any).costPrice,
+            ),
+        }))
+        .filter((item) => item.value > 0)
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 6),
+    [stockItems],
+  );
 
-  const chartConfig = {
-    backgroundGradientFrom: '#ffffff',
-    backgroundGradientTo: '#ffffff',
-    decimalPlaces: 0,
-    color: (opacity = 1) => `rgba(37, 99, 235, ${opacity})`,
-    labelColor: () => '#111827',
-  };
+  const stockHealth = useMemo(() => {
+    const total = stockItems.length;
 
-  // const formatCurrency = (value: number, currencyCode?: string, locale?: string) => {
-  //   return new Intl.NumberFormat(locale, {
-  //     style: 'currency',
-  //     currency: currencyCode,
-  //   }).format(value);
-  // };
+    const attention =
+      metrics.lowStockItems.length +
+      metrics.outOfStockItems.length;
 
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    }).format(date);
-  };
+    const healthy = Math.max(
+      total - attention,
+      0,
+    );
+
+    const percentage =
+      total > 0
+        ? Math.round(
+            (healthy / total) * 100,
+          )
+        : 0;
+
+    return {
+      healthy,
+      attention,
+      percentage,
+    };
+  }, [stockItems, metrics]);
+
+  const alertItems = useMemo(
+    () =>
+      [
+        ...metrics.outOfStockItems.map(
+          (item) => ({
+            id: item.id,
+            name: item.name,
+            message: "Out of stock",
+            severity: "critical" as const,
+          }),
+        ),
+        ...metrics.lowStockItems.map(
+          (item) => ({
+            id: item.id,
+            name: item.name,
+            message: `${safeNumber(
+              item.quantity,
+            )} ${item.unit || "units"} remaining`,
+            severity: "warning" as const,
+          }),
+        ),
+      ].slice(0, 6),
+    [metrics],
+  );
 
   const exportReport = async () => {
+    if (exporting) return;
+
     try {
+      setExporting(true);
+
+      const reportRows = topSellers
+        .map(
+          (item) => `
+            <tr>
+              <td>${escapeHtml(item.name)}</td>
+              <td style="text-align:right;">${item.quantity}</td>
+              <td style="text-align:right;">${escapeHtml(currency(item.revenue))}</td>
+            </tr>
+          `,
+        )
+        .join("");
+
+      const alertRows = alertItems
+        .map(
+          (item) => `
+            <tr>
+              <td>${escapeHtml(item.name)}</td>
+              <td>${escapeHtml(item.message)}</td>
+            </tr>
+          `,
+        )
+        .join("");
+
       const html = `
+        <!DOCTYPE html>
         <html>
-          <body style="font-family: Arial; padding: 20px;">
-            <h1>StockTally Stock Dashboard Report</h1>
-            <h2>Summary</h2>
-            <p>Total Stock Items: ${dashboardStats.totalStockItems}</p>
-            <p>Total Quantity: ${dashboardStats.totalStockQuantity}</p>
-            <p>Total Stock Value: 
-            ${formatCurrencyFromProfile(dashboardStats.totalStockValue, companyProfile)}</p>
-            <p>Low Stock Items: ${dashboardStats.lowStockItems.length}</p>
-            <p>Out of Stock Items: ${dashboardStats.outOfStockItems.length}</p>
-            <p>Total Returns: ${dashboardStats.totalReturns}</p>
-            <p>Estimated Reorder Value: 
-            ${formatCurrencyFromProfile(dashboardStats.reorderValue, companyProfile)}</p>
-            <p>Total Returns: ${dashboardStats.totalSold}</p>
-            <p>Estimated Reorder Value: 
-            ${formatCurrencyFromProfile(dashboardStats.soldValue, companyProfile)}</p>
-            <p>Supplier Credit: 
-            ${formatCurrencyFromProfile(dashboardStats.supplierCredit, companyProfile)}</p>
-            <p>Customer Credit:
-            ${formatCurrencyFromProfile(dashboardStats.customerCredit, companyProfile)}</p>
+          <head>
+            <meta charset="utf-8" />
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                color: #0f172a;
+                padding: 26px;
+              }
+              h1 { margin-bottom: 4px; }
+              .muted { color: #64748b; }
+              .grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+                margin: 22px 0;
+              }
+              .card {
+                border: 1px solid #dbe3eb;
+                border-radius: 10px;
+                padding: 14px;
+              }
+              .label {
+                color: #64748b;
+                font-size: 12px;
+              }
+              .value {
+                font-size: 20px;
+                font-weight: bold;
+                margin-top: 5px;
+              }
+              table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 10px;
+              }
+              th, td {
+                border: 1px solid #dbe3eb;
+                padding: 8px;
+                font-size: 12px;
+                text-align: left;
+              }
+              th { background: #f1f5f9; }
+              h2 { margin-top: 26px; }
+            </style>
+          </head>
 
+          <body>
+            <h1>${escapeHtml(
+              companyProfile?.companyName ||
+                "StockTally",
+            )}</h1>
 
-            <h2>Low Stock Items</h2>
-            <table border="1" cellspacing="0" cellpadding="6" style="width:100%;">
+            <div class="muted">
+              Business dashboard · ${escapeHtml(
+                dateRange.label,
+              )} · Generated ${escapeHtml(
+                new Date().toLocaleString(
+                  "en-GB",
+                ),
+              )}
+            </div>
+
+            <div class="grid">
+              <div class="card">
+                <div class="label">Sales revenue</div>
+                <div class="value">${escapeHtml(
+                  formatCurrencyFromProfile(metrics.revenue),
+                )}</div>
+              </div>
+
+              <div class="card">
+                <div class="label">Units sold</div>
+                <div class="value">${metrics.unitsSold}</div>
+              </div>
+
+              <div class="card">
+                <div class="label">Current stock value</div>
+                <div class="value">${escapeHtml(
+                  currency(
+                    metrics.stockCostValue,
+                  ),
+                )}</div>
+              </div>
+
+              <div class="card">
+                <div class="label">Current stock quantity</div>
+                <div class="value">${metrics.currentQuantity}</div>
+              </div>
+
+              <div class="card">
+                <div class="label">Customers owe</div>
+                <div class="value">${escapeHtml(
+                  currency(
+                    metrics.customerOutstanding,
+                  ),
+                )}</div>
+              </div>
+
+              <div class="card">
+                <div class="label">You owe suppliers</div>
+                <div class="value">${escapeHtml(
+                  currency(
+                    metrics.supplierOutstanding,
+                  ),
+                )}</div>
+              </div>
+            </div>
+
+            <h2>Top-selling items</h2>
+            <table>
               <tr>
                 <th>Item</th>
-                <th>Category</th>
-                <th>Qty</th>
-                <th>Alert</th>
-                <th>Ideal</th>
+                <th>Units</th>
+                <th>Revenue</th>
               </tr>
-              ${dashboardStats.lowStockItems
-                .map(
-                  (item) => `
-                  <tr>
-                    <td>${item.name}</td>
-                    <td>${item.category}</td>
-                    <td>${item.quantity} ${item.unit || 'pcs'}</td>
-                    <td>${item.lowStockAlert || '-'}</td>
-                    <td>${item.idealStockLevel || '-'}</td>
-                  </tr>
-                `
-                )
-                .join('')}
+              ${
+                reportRows ||
+                `<tr><td colspan="3">No sales in this period.</td></tr>`
+              }
+            </table>
+
+            <h2>Stock alerts</h2>
+            <table>
+              <tr>
+                <th>Item</th>
+                <th>Status</th>
+              </tr>
+              ${
+                alertRows ||
+                `<tr><td colspan="2">No current stock alerts.</td></tr>`
+              }
             </table>
           </body>
         </html>
       `;
 
-      const { uri } = await Print.printToFileAsync({ html });
-      const newPath = `${FileSystem.documentDirectory}StockDashboardReport.pdf`;
+      const { uri } =
+        await Print.printToFileAsync({
+          html,
+        });
 
-      await FileSystem.moveAsync({ from: uri, to: newPath });
+      const fileName = `StockTally-Dashboard-${Date.now()}.pdf`;
+      const destination = `${FileSystem.documentDirectory}${fileName}`;
 
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(newPath);
+      await FileSystem.moveAsync({
+        from: uri,
+        to: destination,
+      });
+
+      if (
+        await Sharing.isAvailableAsync()
+      ) {
+        await Sharing.shareAsync(
+          destination,
+          {
+            mimeType: "application/pdf",
+            dialogTitle:
+              "Share dashboard report",
+            UTI: "com.adobe.pdf",
+          },
+        );
       } else {
-        Alert.alert('Report saved', newPath);
+        Alert.alert(
+          "Report Created",
+          `Saved as ${fileName}`,
+        );
       }
     } catch (error: any) {
-      Alert.alert('Export Failed', error.message || 'Could not export report.');
+      console.error(
+        "Dashboard export error:",
+        error,
+      );
+      Alert.alert(
+        "Export Failed",
+        error.message ||
+          "The dashboard report could not be created.",
+      );
+    } finally {
+      setExporting(false);
     }
   };
-  const safeStockValueChartData = topStockValueItems
-  .map((item) => ({
-    name: item.name || "Item",
-    value: safeNumber(item.stockValue),
-  }))
-  .filter((item) => Number.isFinite(item.value) && item.value >= 0);
 
-  if (loading) {
+  if (subscriptionLoading) {
     return (
-      <ScreenWrapper>
-        <View style={styles.center}>
-          <Text style={{ color: "#fff" }}>Loading dashboard...</Text>
+      <ScreenWrapper
+        backgroundColor="#eef3f8"
+      >
+        <View style={styles.loadingScreen}>
+          <ActivityIndicator
+            size="large"
+            color="#1d4ed8"
+          />
+          <Text style={styles.loadingText}>
+            Loading dashboard…
+          </Text>
         </View>
       </ScreenWrapper>
     );
   }
 
-  if (!isProUser) {
+  if (!permissions.analytics) {
     return (
-      <ScreenWrapper>
+      <ScreenWrapper
+        backgroundColor="#eef3f8"
+      >
         <LinearGradient
-          colors={['#0d1b2a', '#1b263b', '#415a77']}
-          style={styles.gradient}
+          colors={[
+            "#0f172a",
+            "#1e3a5f",
+            "#28547f",
+          ]}
+          style={styles.proScreen}
         >
-          <View
-            style={{
-              flex: 1,
-              justifyContent: 'center',
-              alignItems: 'center',
-              padding: 24,
-            }}
+          <View style={styles.proIconCircle}>
+            <Text style={styles.proIcon}>
+              📊
+            </Text>
+          </View>
+
+          <Text style={styles.proTitle}>
+            Advanced Dashboard
+          </Text>
+
+          <Text style={styles.proDescription}>
+            Unlock sales trends, stock
+            health, outstanding balances and
+            downloadable business reports.
+          </Text>
+
+          <TouchableOpacity
+            style={styles.proButton}
+            onPress={() =>
+              router.push("/paywall")
+            }
           >
             <Text
-              style={{
-                color: '#fff',
-                fontSize: 24,
-                fontWeight: '900',
-                marginBottom: 12,
-                textAlign: 'center',
-              }}
+              style={styles.proButtonText}
             >
-              Pro Feature
+              Upgrade to Pro
             </Text>
-
-            <Text
-              style={{
-                color: '#cbd5e1',
-                textAlign: 'center',
-                marginBottom: 24,
-              }}
-            >
-              Upgrade to Pro to access advanced dashboard analytics.
-            </Text>
-
-            <TouchableOpacity
-              style={{
-                backgroundColor: '#f97316',
-                paddingVertical: 14,
-                paddingHorizontal: 30,
-                borderRadius: 14,
-              }}
-              onPress={() => router.push('/paywall')}
-            >
-              <Text
-                style={{
-                  color: '#fff',
-                  fontWeight: '900',
-                  fontSize: 16,
-                }}
-              >
-                Upgrade to Pro
-              </Text>
-            </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
         </LinearGradient>
       </ScreenWrapper>
     );
   }
+
   return (
-    
-    <ScreenWrapper>
-      <LinearGradient colors={['#0d1b2a', '#1b263b', '#415a77']} style={styles.gradient}>
-        <ScrollView contentContainerStyle={styles.scroll}>
-          <Text style={styles.title}>Stock Dashboard</Text>
-          <Text style={styles.subtitle}>Inventory health, value and reorder insights</Text>
+    <ScreenWrapper
+      backgroundColor="#eef3f8"
+    >
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() =>
+              loadDashboard(true)
+            }
+            tintColor="#1d4ed8"
+          />
+        }
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.headerRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.pageTitle}>
+              Business Dashboard
+            </Text>
 
-          <View style={styles.quickActions}>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => router.push('/screens/stock/add')}
-            >
-              <Text style={styles.actionText}>+ Add Stock</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.actionButton, styles.blueButton]}
-              onPress={() => router.push('/screens/ReorderListScreen')}
-            >
-              <Text style={styles.actionText}>Low Stock</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.actionButton, styles.tealButton]}
-              onPress={() => router.push('/screens/StockTakeSessionScreen')}
-            >
-              <Text style={styles.actionText}>Stock Count</Text>
-            </TouchableOpacity>
+            <Text style={styles.pageSubtitle}>
+              Sales, inventory and cash
+              position
+            </Text>
           </View>
 
-          <View style={styles.filterRow}>
+          <TouchableOpacity
+            style={styles.exportIconButton}
+            onPress={exportReport}
+            disabled={exporting}
+          >
+            {exporting ? (
+              <ActivityIndicator
+                size="small"
+                color="#1d4ed8"
+              />
+            ) : (
+              <Text
+                style={
+                  styles.exportIconText
+                }
+              >
+                PDF
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.filterCard}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={
+              false
+            }
+            contentContainerStyle={
+              styles.filterContent
+            }
+          >
             {[
-              { label: 'All', value: 'all' },
-              { label: 'Today', value: 'daily' },
-              { label: 'Week', value: 'weekly' },
-              { label: 'Month', value: 'monthly' },
-              { label: 'Custom', value: 'custom' },
-            ].map((option) => (
-              <TouchableOpacity
-                key={option.value}
-                style={[
-                  styles.filterButton,
-                  filter === option.value && styles.filterButtonActive,
-                ]}
-                onPress={() => setFilter(option.value as FilterType)}
-              >
-                <Text
+              {
+                label: "Today",
+                value: "daily",
+              },
+              {
+                label: "Week",
+                value: "weekly",
+              },
+              {
+                label: "Month",
+                value: "monthly",
+              },
+              {
+                label: "All time",
+                value: "all",
+              },
+              {
+                label: "Custom",
+                value: "custom",
+              },
+            ].map((option) => {
+              const active =
+                filter === option.value;
+
+              return (
+                <TouchableOpacity
+                  key={option.value}
                   style={[
-                    styles.filterButtonText,
-                    filter === option.value && styles.filterButtonTextActive,
+                    styles.filterButton,
+                    active &&
+                      styles.filterButtonActive,
                   ]}
+                  onPress={() =>
+                    setFilter(
+                      option.value as FilterType,
+                    )
+                  }
                 >
-                  {option.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                  <Text
+                    style={[
+                      styles.filterText,
+                      active &&
+                        styles.filterTextActive,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
+          <Text style={styles.periodLabel}>
+            {dateRange.label}
+          </Text>
+        </View>
+
+        {filter === "custom" &&
+        DateTimePickerModal ? (
+          <View style={styles.dateRange}>
+            <TouchableOpacity
+              style={styles.dateButton}
+              onPress={() =>
+                setShowStartPicker(true)
+              }
+            >
+              <Text
+                style={styles.dateButtonLabel}
+              >
+                From
+              </Text>
+              <Text
+                style={styles.dateButtonValue}
+              >
+                {formatDate(startDate)}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.dateButton}
+              onPress={() =>
+                setShowEndPicker(true)
+              }
+            >
+              <Text
+                style={styles.dateButtonLabel}
+              >
+                To
+              </Text>
+              <Text
+                style={styles.dateButtonValue}
+              >
+                {formatDate(endDate)}
+              </Text>
+            </TouchableOpacity>
+
+            <DateTimePickerModal
+              isVisible={showStartPicker}
+              mode="date"
+              onConfirm={(date: Date) => {
+                setShowStartPicker(false);
+                setStartDate(date);
+              }}
+              onCancel={() =>
+                setShowStartPicker(false)
+              }
+            />
+
+            <DateTimePickerModal
+              isVisible={showEndPicker}
+              mode="date"
+              onConfirm={(date: Date) => {
+                setShowEndPicker(false);
+                setEndDate(date);
+              }}
+              onCancel={() =>
+                setShowEndPicker(false)
+              }
+            />
           </View>
+        ) : null}
 
-          {filter === 'custom' && DateTimePickerModal && (
-            <View style={styles.dateRangeRow}>
-              <TouchableOpacity
-                style={styles.dateColumn}
-                onPress={() => setShowStartPicker(true)}
+        {dataLoading ? (
+          <View style={styles.dataLoadingCard}>
+            <ActivityIndicator
+              color="#1d4ed8"
+            />
+            <Text
+              style={styles.dataLoadingText}
+            >
+              Analysing your business…
+            </Text>
+          </View>
+        ) : (
+          <>
+            <LinearGradient
+              colors={[
+                "#0f172a",
+                "#1e3a5f",
+                "#28547f",
+              ]}
+              style={styles.revenueHero}
+            >
+              <Text
+                style={styles.heroEyebrow}
               >
-                <Text style={styles.dateBtn}>Start</Text>
-                <Text style={styles.dateValue}>{formatDate(startDate)}</Text>
-              </TouchableOpacity>
+                SALES REVENUE
+              </Text>
 
-              <TouchableOpacity
-                style={styles.dateColumn}
-                onPress={() => setShowEndPicker(true)}
+              <Text
+                style={styles.heroValue}
+                numberOfLines={1}
+                adjustsFontSizeToFit
               >
-                <Text style={styles.dateBtn}>End</Text>
-                <Text style={styles.dateValue}>{formatDate(endDate)}</Text>
-              </TouchableOpacity>
+                {currency(metrics.revenue)}
+              </Text>
 
-              <DateTimePickerModal
-                isVisible={showStartPicker}
-                mode="date"
-                onConfirm={(date: Date) => {
-                  setShowStartPicker(false);
-                  setStartDate(date);
-                }}
-                onCancel={() => setShowStartPicker(false)}
+              <View
+                style={styles.heroMetricRow}
+              >
+                <MiniMetric
+                  label="Sales"
+                  value={String(
+                    metrics.salesGroups,
+                  )}
+                />
+
+                <View
+                  style={styles.heroDivider}
+                />
+
+                <MiniMetric
+                  label="Units sold"
+                  value={String(
+                    metrics.unitsSold,
+                  )}
+                />
+
+                <View
+                  style={styles.heroDivider}
+                />
+
+                <MiniMetric
+                  label="Average sale"
+                  value={currency(
+                    metrics.averageSale,
+                  )}
+                />
+              </View>
+            </LinearGradient>
+
+            <Text style={styles.sectionHeading}>
+              Financial position
+            </Text>
+
+            <View style={styles.cardGrid}>
+              <MetricCard
+                icon="💳"
+                title="Customers Owe"
+                value={currency(
+                  metrics.customerOutstanding,
+                )}
+                subtitle={`${metrics.unpaidSaleGroups} unpaid sale${
+                  metrics.unpaidSaleGroups ===
+                  1
+                    ? ""
+                    : "s"
+                }`}
+                tone="amber"
+                onPress={() =>
+                  router.push(
+                    "/(tabs)/saleList",
+                  )
+                }
               />
 
-              <DateTimePickerModal
-                isVisible={showEndPicker}
-                mode="date"
-                onConfirm={(date: Date) => {
-                  setShowEndPicker(false);
-                  setEndDate(date);
-                }}
-                onCancel={() => setShowEndPicker(false)}
+              <MetricCard
+                icon="🏭"
+                title="You Owe"
+                value={currency(
+                  metrics.supplierOutstanding,
+                )}
+                subtitle="Unpaid supplier deliveries"
+                tone="purple"
+                onPress={() =>
+                  router.push(
+                    "/screens/suppliers/supplierList",
+                  )
+                }
+              />
+
+              <MetricCard
+                icon="📦"
+                title="Stock Value"
+                value={currency(
+                  metrics.stockCostValue,
+                )}
+                subtitle={`${metrics.currentQuantity} units on hand`}
+                tone="blue"
+                onPress={() =>
+                  router.push(
+                    "/(tabs)/stockList",
+                  )
+                }
+              />
+
+              <MetricCard
+                icon="↩️"
+                title="Returns"
+                value={String(
+                  metrics.returnQuantity,
+                )}
+                subtitle={`Recorded ${dateRange.label.toLowerCase()}`}
+                tone="teal"
+                onPress={() =>
+                  router.push(
+                    "/(tabs)/returnsList",
+                  )
+                }
               />
             </View>
-          )}
 
-          <View style={styles.kpiGrid}>
-            <KpiCard title="Stock Items" value={String(dashboardStats.totalStockItems)} />
-            <KpiCard title="Total Quantity" value={String(dashboardStats.totalStockQuantity)} />
-            <KpiCard title="Stock Value" value={formatCurrencyFromProfile(dashboardStats.totalStockValue, companyProfile)} />
-            <KpiCard title="Returns" value={String(dashboardStats.totalReturns)} />
-            <KpiCard
-              title="Low Stock"
-              value={String(dashboardStats.lowStockItems.length)}
-              danger={dashboardStats.lowStockItems.length > 0}
-            />
-            <KpiCard
-              title="Out of Stock"
-              value={String(dashboardStats.outOfStockItems.length)}
-              danger={dashboardStats.outOfStockItems.length > 0}
-            />
-            <KpiCard title="Reorder Qty" value={String(dashboardStats.reorderQuantity)} />
-            <KpiCard title="Reorder Value" value={formatCurrencyFromProfile(dashboardStats.reorderValue, companyProfile)} />
-            <KpiCard title="Total Sold" value={String(dashboardStats.totalSold)} />
-            <KpiCard title="Sold Value" value={formatCurrencyFromProfile(dashboardStats.soldValue, companyProfile)} />
-            <KpiCard title="Supplier Credit" value={formatCurrencyFromProfile(dashboardStats.supplierCredit, companyProfile)} />
-            <KpiCard title="Customer Credit" value={formatCurrencyFromProfile(dashboardStats.customerCredit, companyProfile)} />
-          </View>
-
-          <TouchableOpacity style={styles.exportButton} onPress={exportReport}>
-            <Text style={styles.exportButtonText}>Export Stock Report PDF</Text>
-          </TouchableOpacity>
-
-          <Section title="Stock Value by Item">
-            {topStockValueItems.length === 0 ? (
-              <Text style={styles.emptyText}>Add cost prices to see stock value charts.</Text>
-            ) : BarChart ? (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <BarChart
-                  data={{
-                    labels: topStockValueItems.map((item) =>
-                      item.name.length > 8 ? `${item.name.slice(0, 8)}…` : item.name
-                    ),
-                    datasets: [
-                      {
-                        data: topStockValueItems.map((item) => safeNumber(item.stockValue)),
-                      },
-                    ],
-                  }}
-                  width={Math.max(screenWidth - 32, topStockValueItems.length * 80)}
-                  height={260}
-                  yAxisLabel="£"
-                  yAxisSuffix=""
-                  chartConfig={chartConfig}
-                  style={styles.chart}
-                  verticalLabelRotation={35}
-                />
-              </ScrollView>
-            ) : (
-              <Text style={styles.emptyText}>Chart unavailable on this device.</Text>
-            )}
-          </Section>
-
-          <Section title="Stock by Category">
-            {categoryData.length === 0 ? (
-              <Text style={styles.emptyText}>No stock categories found.</Text>
-            ) : (
-              <PieChart
-                data={categoryData.map((item, index) => ({
-                  name: item.category,
-                  population: item.quantity,
-                  color: chartColors[index % chartColors.length],
-                  legendFontColor: '#111827',
-                  legendFontSize: 12,
-                }))}
-                width={screenWidth - 32}
-                height={220}
-                chartConfig={chartConfig}
-                accessor="population"
-                backgroundColor="transparent"
-                paddingLeft="12"
-                absolute={false}
-              />
-            )}
-          </Section>
-          {/* <Section title="Stock by Category">
-            {categoryData.length === 0 ? (
-              <Text style={styles.emptyText}>No stock categories found.</Text>
-            ) : Platform.OS === "android" ? (
-              <View style={styles.simpleChartContainer}>
-                {categoryData.map((item, index) => {
-                  const totalQty = categoryData.reduce(
-                    (sum, x) => sum + safeNumber(x.quantity),
-                    0
-                  );
-
-                  const value = safeNumber(item.quantity);
-                  const percentage =
-                    totalQty > 0 ? Math.round((value / totalQty) * 100) : 0;
-
-                  return (
-                    <View key={`${item.category}-${index}`} style={styles.categoryRow}>
-                      <View
-                        style={[
-                          styles.categoryDot,
-                          { backgroundColor: chartColors[index % chartColors.length] },
-                        ]}
-                      />
-
-                      <Text style={styles.categoryLabel} numberOfLines={1}>
-                        {item.category}
-                      </Text>
-
-                      <Text style={styles.categoryValue}>
-                        {value} pcs
-                      </Text>
-
-                      <Text style={styles.categoryPercent}>
-                        {percentage}%
-                      </Text>
-                    </View>
-                  );
-                })}
-              </View>
-            ) : (
-              <PieChart
-                data={categoryData.map((item, index) => ({
-                  name: item.category,
-                  population: item.quantity,
-                  color: chartColors[index % chartColors.length],
-                  legendFontColor: "#111827",
-                  legendFontSize: 12,
-                }))}
-                width={screenWidth - 32}
-                height={220}
-                chartConfig={chartConfig}
-                accessor="population"
-                backgroundColor="transparent"
-                paddingLeft="12"
-                absolute={false}
-              />
-            )}
-          </Section> */}
-
-          <Section title={`Recently Added Stock (${filter})`}>
-            {recentStockItems.length === 0 ? (
-              <Text style={styles.emptyText}>No stock added in this period.</Text>
-            ) : (
-              recentStockItems.map((item) => (
-                <View key={item.id} style={styles.stockRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.stockName}>{item.name}</Text>
-                    <Text style={styles.stockMeta}>
-                      {item.category} • {item.quantity} {item.unit || 'pcs'}
-                    </Text>
-                  </View>
-                  <Text style={styles.stockValue}>
-                    {formatCurrencyFromProfile(safeNumber(item.quantity) * safeNumber(item.costPrice), companyProfile)}
+            <View style={styles.healthCard}>
+              <View
+                style={styles.healthHeader}
+              >
+                <View>
+                  <Text
+                    style={styles.healthTitle}
+                  >
+                    Stock Health
+                  </Text>
+                  <Text
+                    style={
+                      styles.healthSubtitle
+                    }
+                  >
+                    {stockHealth.healthy} of{" "}
+                    {stockItems.length} items
+                    are healthy
                   </Text>
                 </View>
-              ))
+
+                <Text
+                  style={styles.healthPercent}
+                >
+                  {stockHealth.percentage}%
+                </Text>
+              </View>
+
+              <View
+                style={styles.healthTrack}
+              >
+                <View
+                  style={[
+                    styles.healthFill,
+                    {
+                      width: `${stockHealth.percentage}%`,
+                    },
+                  ]}
+                />
+              </View>
+
+              <View
+                style={styles.healthStats}
+              >
+                <HealthStat
+                  dotStyle={
+                    styles.dotHealthy
+                  }
+                  label="Healthy"
+                  value={
+                    stockHealth.healthy
+                  }
+                />
+
+                <HealthStat
+                  dotStyle={
+                    styles.dotWarning
+                  }
+                  label="Low"
+                  value={
+                    metrics.lowStockItems
+                      .length
+                  }
+                />
+
+                <HealthStat
+                  dotStyle={
+                    styles.dotCritical
+                  }
+                  label="Out"
+                  value={
+                    metrics.outOfStockItems
+                      .length
+                  }
+                />
+              </View>
+            </View>
+
+            {alertItems.length > 0 ? (
+              <SectionCard
+                title="Needs Attention"
+                actionLabel="View low stock"
+                onAction={() =>
+                  router.push(
+                    "/screens/ReorderListScreen",
+                  )
+                }
+              >
+                {alertItems.map(
+                  (item, index) => (
+                    <View
+                      key={`${item.id}-${item.severity}`}
+                      style={[
+                        styles.alertRow,
+                        index ===
+                          alertItems.length -
+                            1 &&
+                          styles.lastRow,
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.alertIcon,
+                          item.severity ===
+                          "critical"
+                            ? styles.alertCritical
+                            : styles.alertWarning,
+                        ]}
+                      >
+                        <Text>
+                          {item.severity ===
+                          "critical"
+                            ? "!"
+                            : "↓"}
+                        </Text>
+                      </View>
+
+                      <View
+                        style={{ flex: 1 }}
+                      >
+                        <Text
+                          style={
+                            styles.rowTitle
+                          }
+                          numberOfLines={1}
+                        >
+                          {item.name}
+                        </Text>
+
+                        <Text
+                          style={
+                            styles.rowSubtitle
+                          }
+                        >
+                          {item.message}
+                        </Text>
+                      </View>
+                    </View>
+                  ),
+                )}
+              </SectionCard>
+            ) : (
+              <View
+                style={
+                  styles.allHealthyCard
+                }
+              >
+                <Text
+                  style={
+                    styles.allHealthyIcon
+                  }
+                >
+                  ✓
+                </Text>
+
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={
+                      styles.allHealthyTitle
+                    }
+                  >
+                    Inventory looks healthy
+                  </Text>
+
+                  <Text
+                    style={
+                      styles.allHealthyText
+                    }
+                  >
+                    No low-stock or
+                    out-of-stock alerts.
+                  </Text>
+                </View>
+              </View>
             )}
-          </Section>
-        </ScrollView>
-      </LinearGradient>
+
+            <SectionCard
+              title="Top Sellers"
+              subtitle={dateRange.label}
+              actionLabel="Stock out"
+              onAction={() =>
+                router.push(
+                  "/(tabs)/saleList",
+                )
+              }
+            >
+              {topSellers.length === 0 ? (
+                <EmptyState
+                  icon="🛒"
+                  text="No sales recorded in this period."
+                />
+              ) : (
+                topSellers.map(
+                  (item, index) => {
+                    const maximum =
+                      topSellers[0]
+                        ?.revenue || 1;
+                    const percentage =
+                      Math.max(
+                        (item.revenue /
+                          maximum) *
+                          100,
+                        4,
+                      );
+
+                    return (
+                      <View
+                        key={item.name}
+                        style={[
+                          styles.sellerRow,
+                          index ===
+                            topSellers.length -
+                              1 &&
+                            styles.lastRow,
+                        ]}
+                      >
+                        <View
+                          style={
+                            styles.rankCircle
+                          }
+                        >
+                          <Text
+                            style={
+                              styles.rankText
+                            }
+                          >
+                            {index + 1}
+                          </Text>
+                        </View>
+
+                        <View
+                          style={{
+                            flex: 1,
+                          }}
+                        >
+                          <View
+                            style={
+                              styles.sellerHeader
+                            }
+                          >
+                            <Text
+                              style={
+                                styles.rowTitle
+                              }
+                              numberOfLines={
+                                1
+                              }
+                            >
+                              {item.name}
+                            </Text>
+
+                            <Text
+                              style={
+                                styles.sellerValue
+                              }
+                            >
+                              {currency(
+                                item.revenue,
+                              )}
+                            </Text>
+                          </View>
+
+                          <View
+                            style={
+                              styles.barTrack
+                            }
+                          >
+                            <View
+                              style={[
+                                styles.barFill,
+                                {
+                                  width: `${percentage}%`,
+                                },
+                              ]}
+                            />
+                          </View>
+
+                          <Text
+                            style={
+                              styles.rowSubtitle
+                            }
+                          >
+                            {item.quantity} units
+                            sold
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  },
+                )
+              )}
+            </SectionCard>
+
+            <SectionCard
+              title="Highest Stock Value"
+              subtitle="Current inventory at cost"
+              actionLabel="Stock list"
+              onAction={() =>
+                router.push(
+                  "/(tabs)/stockList",
+                )
+              }
+            >
+              {highestValueStock.length ===
+              0 ? (
+                <EmptyState
+                  icon="📦"
+                  text="Add cost prices to see inventory value analysis."
+                />
+              ) : (
+                <>
+                  {BarChart ? (
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={
+                        false
+                      }
+                    >
+                      <BarChart
+                        data={{
+                          labels:
+                            highestValueStock.map(
+                              (item) =>
+                                item.name.length >
+                                9
+                                  ? `${item.name.slice(
+                                      0,
+                                      9,
+                                    )}…`
+                                  : item.name,
+                            ),
+                          datasets: [
+                            {
+                              data: highestValueStock.map(
+                                (item) =>
+                                  item.value,
+                              ),
+                            },
+                          ],
+                        }}
+                        width={Math.max(
+                          SCREEN_WIDTH - 64,
+                          highestValueStock.length *
+                            82,
+                        )}
+                        height={230}
+                        yAxisLabel={
+                          companyProfile?.currencySymbol ||
+                          "£"
+                        }
+                        yAxisSuffix=""
+                        fromZero
+                        showValuesOnTopOfBars={
+                          false
+                        }
+                        chartConfig={{
+                          backgroundGradientFrom:
+                            "#ffffff",
+                          backgroundGradientTo:
+                            "#ffffff",
+                          decimalPlaces: 0,
+                          color: (
+                            opacity = 1,
+                          ) =>
+                            `rgba(37, 99, 235, ${opacity})`,
+                          labelColor: () =>
+                            "#475569",
+                          propsForBackgroundLines:
+                            {
+                              stroke:
+                                "#e2e8f0",
+                            },
+                          barPercentage:
+                            0.62,
+                        }}
+                        style={
+                          styles.chart
+                        }
+                      />
+                    </ScrollView>
+                  ) : (
+                    highestValueStock.map(
+                      (item, index) => (
+                        <View
+                          key={item.id}
+                          style={[
+                            styles.valueRow,
+                            index ===
+                              highestValueStock.length -
+                                1 &&
+                              styles.lastRow,
+                          ]}
+                        >
+                          <View
+                            style={{
+                              flex: 1,
+                            }}
+                          >
+                            <Text
+                              style={
+                                styles.rowTitle
+                              }
+                            >
+                              {item.name}
+                            </Text>
+                            <Text
+                              style={
+                                styles.rowSubtitle
+                              }
+                            >
+                              {item.quantity}{" "}
+                              units
+                            </Text>
+                          </View>
+
+                          <Text
+                            style={
+                              styles.valueText
+                            }
+                          >
+                            {currency(
+                              item.value,
+                            )}
+                          </Text>
+                        </View>
+                      ),
+                    )
+                  )}
+                </>
+              )}
+            </SectionCard>
+
+            <Text style={styles.sectionHeading}>
+              Quick actions
+            </Text>
+
+            <View
+              style={
+                styles.quickActionGrid
+              }
+            >
+              <QuickAction
+                icon="＋"
+                title="Add Stock"
+                onPress={() =>
+                  router.push(
+                    "/screens/stock/add",
+                  )
+                }
+              />
+
+              <QuickAction
+                icon="↗"
+                title="Move Stock"
+                onPress={() =>
+                  router.push(
+                    "/screens/StockMoveScreen",
+                  )
+                }
+              />
+
+              <QuickAction
+                icon="✓"
+                title="Stock Count"
+                onPress={() =>
+                  router.push(
+                    "/screens/StockTakeSessionScreen",
+                  )
+                }
+              />
+
+              <QuickAction
+                icon="☁"
+                title="Sync Data"
+                onPress={() =>
+                  router.push(
+                    "/screens/CloudBackupScreen",
+                  )
+                }
+              />
+            </View>
+
+            <TouchableOpacity
+              style={styles.exportButton}
+              onPress={exportReport}
+              disabled={exporting}
+            >
+              {exporting ? (
+                <ActivityIndicator
+                  color="#ffffff"
+                />
+              ) : (
+                <>
+                  <Text
+                    style={
+                      styles.exportButtonIcon
+                    }
+                  >
+                    ↓
+                  </Text>
+                  <Text
+                    style={
+                      styles.exportButtonText
+                    }
+                  >
+                    Export Dashboard Report
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </>
+        )}
+      </ScrollView>
     </ScreenWrapper>
   );
 };
 
-const KpiCard = ({
-  title,
+const formatDate = (date: Date) =>
+  new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+
+const MiniMetric = ({
+  label,
   value,
-  danger,
 }: {
-  title: string;
+  label: string;
   value: string;
-  danger?: boolean;
 }) => (
-  <View style={[styles.kpiCard, danger && styles.kpiDanger]}>
-    <Text style={styles.kpiTitle}>{title}</Text>
-    <Text style={[styles.kpiValue, danger && styles.kpiValueDanger]}>{value}</Text>
+  <View style={styles.miniMetric}>
+    <Text style={styles.miniMetricValue}>
+      {value}
+    </Text>
+    <Text style={styles.miniMetricLabel}>
+      {label}
+    </Text>
   </View>
 );
 
-const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <View style={styles.section}>
-    <Text style={styles.sectionTitle}>{title}</Text>
+const MetricCard = ({
+  icon,
+  title,
+  value,
+  subtitle,
+  tone,
+  onPress,
+}: {
+  icon: string;
+  title: string;
+  value: string;
+  subtitle: string;
+  tone:
+    | "blue"
+    | "amber"
+    | "purple"
+    | "teal";
+  onPress?: () => void;
+}) => (
+  <TouchableOpacity
+    activeOpacity={0.86}
+    style={styles.metricCard}
+    onPress={onPress}
+  >
+    <View
+      style={[
+        styles.metricIcon,
+        tone === "blue" &&
+          styles.metricIconBlue,
+        tone === "amber" &&
+          styles.metricIconAmber,
+        tone === "purple" &&
+          styles.metricIconPurple,
+        tone === "teal" &&
+          styles.metricIconTeal,
+      ]}
+    >
+      <Text style={styles.metricEmoji}>
+        {icon}
+      </Text>
+    </View>
+
+    <Text style={styles.metricTitle}>
+      {title}
+    </Text>
+
+    <Text
+      style={styles.metricValue}
+      numberOfLines={1}
+      adjustsFontSizeToFit
+    >
+      {value}
+    </Text>
+
+    <Text
+      style={styles.metricSubtitle}
+      numberOfLines={2}
+    >
+      {subtitle}
+    </Text>
+  </TouchableOpacity>
+);
+
+const HealthStat = ({
+  dotStyle,
+  label,
+  value,
+}: {
+  dotStyle: object;
+  label: string;
+  value: number;
+}) => (
+  <View style={styles.healthStat}>
+    <View
+      style={[styles.healthDot, dotStyle]}
+    />
+    <Text style={styles.healthStatLabel}>
+      {label}
+    </Text>
+    <Text style={styles.healthStatValue}>
+      {value}
+    </Text>
+  </View>
+);
+
+const SectionCard = ({
+  title,
+  subtitle,
+  actionLabel,
+  onAction,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  actionLabel?: string;
+  onAction?: () => void;
+  children: React.ReactNode;
+}) => (
+  <View style={styles.sectionCard}>
+    <View style={styles.sectionCardHeader}>
+      <View style={{ flex: 1 }}>
+        <Text
+          style={styles.sectionCardTitle}
+        >
+          {title}
+        </Text>
+
+        {subtitle ? (
+          <Text
+            style={
+              styles.sectionCardSubtitle
+            }
+          >
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
+
+      {actionLabel && onAction ? (
+        <TouchableOpacity
+          onPress={onAction}
+        >
+          <Text
+            style={styles.sectionAction}
+          >
+            {actionLabel} ›
+          </Text>
+        </TouchableOpacity>
+      ) : null}
+    </View>
+
     {children}
   </View>
 );
 
+const EmptyState = ({
+  icon,
+  text,
+}: {
+  icon: string;
+  text: string;
+}) => (
+  <View style={styles.emptyState}>
+    <Text style={styles.emptyIcon}>
+      {icon}
+    </Text>
+    <Text style={styles.emptyText}>
+      {text}
+    </Text>
+  </View>
+);
+
+const QuickAction = ({
+  icon,
+  title,
+  onPress,
+}: {
+  icon: string;
+  title: string;
+  onPress: () => void;
+}) => (
+  <TouchableOpacity
+    activeOpacity={0.85}
+    style={styles.quickAction}
+    onPress={onPress}
+  >
+    <View style={styles.quickActionIcon}>
+      <Text
+        style={styles.quickActionIconText}
+      >
+        {icon}
+      </Text>
+    </View>
+
+    <Text style={styles.quickActionTitle}>
+      {title}
+    </Text>
+  </TouchableOpacity>
+);
+
 const styles = StyleSheet.create({
-  gradient: {
-    flex: 1,
-  },
   scroll: {
-    flexGrow: 1,
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 40,
+    paddingBottom: 130,
   },
 
-  center: {
+  loadingScreen: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
-  title: {
-    color: '#fff',
+
+  loadingText: {
+    color: "#64748b",
+    fontSize: 13,
+    marginTop: 12,
+  },
+
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 18,
+  },
+
+  pageTitle: {
+    color: "#0f172a",
     fontSize: 28,
-    fontWeight: '900',
-    textAlign: 'center',
-    marginTop: 8,
+    fontWeight: "900",
+    letterSpacing: -0.5,
   },
-  subtitle: {
-    color: '#cbd5e1',
-    textAlign: 'center',
-    marginTop: 4,
-    marginBottom: 16,
-  },
-  quickActions: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 14,
-  },
-  actionButton: {
-    flex: 1,
-    backgroundColor: '#16a34a',
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  blueButton: {
-    backgroundColor: '#2563eb',
-  },
-  tealButton: {
-    backgroundColor: '#0f766e',
-  },
-  actionText: {
-    color: '#fff',
-    fontWeight: '900',
+
+  pageSubtitle: {
+    color: "#64748b",
     fontSize: 13,
+    marginTop: 3,
   },
-  filterRow: {
-    flexDirection: 'row',
-    gap: 6,
-    marginBottom: 14,
-  },
-  filterButton: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    alignItems: 'center',
-  },
-  filterButtonActive: {
-    backgroundColor: '#fff',
-  },
-  filterButtonText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 12,
-  },
-  filterButtonTextActive: {
-    color: '#111827',
-  },
-  dateRangeRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 14,
-  },
-  dateColumn: {
-    flex: 1,
-    backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  dateBtn: {
-    color: '#2563eb',
-    fontWeight: '800',
-  },
-  dateValue: {
-    color: '#111827',
-    marginTop: 4,
-    fontWeight: '600',
-  },
-  kpiGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  kpiCard: {
-    width: '48%',
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 14,
-    minHeight: 92,
-  },
-  kpiDanger: {
-    backgroundColor: '#fff1f2',
+
+  exportIconButton: {
+    width: 48,
+    height: 42,
+    borderRadius: 13,
+    backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: '#fecdd3',
+    borderColor: "#dbe3eb",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  kpiTitle: {
-    color: '#64748b',
-    fontWeight: '800',
-    fontSize: 13,
+
+  exportIconText: {
+    color: "#1d4ed8",
+    fontSize: 12,
+    fontWeight: "900",
   },
-  kpiValue: {
-    color: '#111827',
-    fontSize: 24,
-    fontWeight: '900',
-    marginTop: 8,
-  },
-  kpiValueDanger: {
-    color: '#dc2626',
-  },
-  exportButton: {
-    marginTop: 14,
-    backgroundColor: '#f97316',
-    paddingVertical: 13,
-    borderRadius: 14,
-    alignItems: 'center',
-  },
-  exportButtonText: {
-    color: '#fff',
-    fontWeight: '900',
-  },
-  section: {
-    backgroundColor: '#fff',
-    borderRadius: 18,
-    padding: 14,
-    marginTop: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#111827',
+
+  filterCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 17,
+    borderWidth: 1,
+    borderColor: "#dce4ec",
+    paddingVertical: 9,
     marginBottom: 12,
   },
-  emptyText: {
-    color: '#64748b',
-    textAlign: 'center',
-    paddingVertical: 12,
-  },
-  alertRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  alertName: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: '#111827',
-  },
-  alertMeta: {
-    color: '#64748b',
-    marginTop: 2,
-  },
-  alertBadge: {
-    backgroundColor: '#dc2626',
-    color: '#fff',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    overflow: 'hidden',
-    fontWeight: '900',
-    fontSize: 11,
-  },
-  chart: {
-    borderRadius: 12,
-  },
-  stockRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  stockName: {
-    fontWeight: '900',
-    color: '#111827',
-    fontSize: 15,
-  },
-  stockMeta: {
-    color: '#64748b',
-    marginTop: 2,
-  },
-  stockValue: {
-    fontWeight: '900',
-    color: '#2563eb',
-  },
-  simpleChartContainer: {
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderRadius: 14,
-    padding: 12,
-    gap: 10,
-  },
-  simpleBarRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  simpleBarLabel: {
-    width: 80,
-    color: "#fff",
-    fontWeight: "700",
-    fontSize: 12,
-  },
-  simpleBarTrack: {
-    flex: 1,
-    height: 12,
-    backgroundColor: "rgba(255,255,255,0.18)",
-    borderRadius: 999,
-    overflow: "hidden",
-  },
-  simpleBarFill: {
-    height: "100%",
-    backgroundColor: "#38bdf8",
-    borderRadius: 999,
-  },
-  simpleBarValue: {
-    width: 55,
-    color: "#fff",
-    textAlign: "right",
-    fontWeight: "800",
-    fontSize: 12,
-  },
-  categoryRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.08)",
+
+  filterContent: {
+    paddingHorizontal: 9,
+    gap: 7,
   },
 
-  categoryDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+  filterButton: {
+    paddingHorizontal: 15,
+    paddingVertical: 9,
+    borderRadius: 11,
+    backgroundColor: "#f1f5f9",
+  },
+
+  filterButtonActive: {
+    backgroundColor: "#1d4ed8",
+  },
+
+  filterText: {
+    color: "#475569",
+    fontSize: 12,
+    fontWeight: "800",
+  },
+
+  filterTextActive: {
+    color: "#ffffff",
+  },
+
+  periodLabel: {
+    color: "#94a3b8",
+    fontSize: 10,
+    fontWeight: "700",
+    textAlign: "center",
+    marginTop: 8,
+  },
+
+  dateRange: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 12,
+  },
+
+  dateButton: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#dce4ec",
+    borderRadius: 14,
+    padding: 12,
+  },
+
+  dateButtonLabel: {
+    color: "#64748b",
+    fontSize: 10,
+    fontWeight: "800",
+    textTransform: "uppercase",
+  },
+
+  dateButtonValue: {
+    color: "#0f172a",
+    fontSize: 13,
+    fontWeight: "900",
+    marginTop: 4,
+  },
+
+  dataLoadingCard: {
+    minHeight: 180,
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 4,
+  },
+
+  dataLoadingText: {
+    color: "#64748b",
+    fontSize: 13,
+    marginTop: 10,
+  },
+
+  revenueHero: {
+    borderRadius: 23,
+    padding: 20,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.18,
+    shadowOffset: {
+      width: 0,
+      height: 7,
+    },
+    shadowRadius: 14,
+    elevation: 6,
+  },
+
+  heroEyebrow: {
+    color: "#93c5fd",
+    fontSize: 10,
+    fontWeight: "900",
+    letterSpacing: 1.2,
+  },
+
+  heroValue: {
+    color: "#ffffff",
+    fontSize: 35,
+    fontWeight: "900",
+    letterSpacing: -0.8,
+    marginTop: 5,
+  },
+
+  heroMetricRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor:
+      "rgba(255,255,255,0.09)",
+    borderRadius: 14,
+    paddingVertical: 12,
+    marginTop: 18,
+  },
+
+  miniMetric: {
+    flex: 1,
+    alignItems: "center",
+  },
+
+  miniMetricValue: {
+    color: "#ffffff",
+    fontSize: 13,
+    fontWeight: "900",
+  },
+
+  miniMetricLabel: {
+    color: "#bfdbfe",
+    fontSize: 9,
+    fontWeight: "700",
+    marginTop: 4,
+  },
+
+  heroDivider: {
+    width: 1,
+    height: 29,
+    backgroundColor:
+      "rgba(255,255,255,0.18)",
+  },
+
+  sectionHeading: {
+    color: "#0f172a",
+    fontSize: 18,
+    fontWeight: "900",
+    marginTop: 23,
+    marginBottom: 11,
+  },
+
+  cardGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+
+  metricCard: {
+    width: "48.5%",
+    minHeight: 153,
+    backgroundColor: "#ffffff",
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#dce4ec",
+    padding: 14,
+  },
+
+  metricIcon: {
+    width: 37,
+    height: 37,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  metricIconBlue: {
+    backgroundColor: "#dbeafe",
+  },
+
+  metricIconAmber: {
+    backgroundColor: "#fef3c7",
+  },
+
+  metricIconPurple: {
+    backgroundColor: "#ede9fe",
+  },
+
+  metricIconTeal: {
+    backgroundColor: "#ccfbf1",
+  },
+
+  metricEmoji: {
+    fontSize: 17,
+  },
+
+  metricTitle: {
+    color: "#64748b",
+    fontSize: 11,
+    fontWeight: "800",
+    marginTop: 11,
+  },
+
+  metricValue: {
+    color: "#0f172a",
+    fontSize: 20,
+    fontWeight: "900",
+    marginTop: 4,
+  },
+
+  metricSubtitle: {
+    color: "#94a3b8",
+    fontSize: 10,
+    lineHeight: 14,
+    marginTop: 5,
+  },
+
+  healthCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 19,
+    borderWidth: 1,
+    borderColor: "#dce4ec",
+    padding: 16,
+    marginTop: 16,
+  },
+
+  healthHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+
+  healthTitle: {
+    color: "#0f172a",
+    fontSize: 17,
+    fontWeight: "900",
+  },
+
+  healthSubtitle: {
+    color: "#64748b",
+    fontSize: 11,
+    marginTop: 4,
+  },
+
+  healthPercent: {
+    color: "#15803d",
+    fontSize: 24,
+    fontWeight: "900",
+  },
+
+  healthTrack: {
+    height: 10,
+    backgroundColor: "#e2e8f0",
+    borderRadius: 999,
+    overflow: "hidden",
+    marginTop: 17,
+  },
+
+  healthFill: {
+    height: "100%",
+    backgroundColor: "#16a34a",
+    borderRadius: 999,
+  },
+
+  healthStats: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 15,
+  },
+
+  healthStat: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  healthDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+
+  dotHealthy: {
+    backgroundColor: "#16a34a",
+  },
+
+  dotWarning: {
+    backgroundColor: "#f59e0b",
+  },
+
+  dotCritical: {
+    backgroundColor: "#dc2626",
+  },
+
+  healthStatLabel: {
+    color: "#64748b",
+    fontSize: 10,
+    fontWeight: "700",
+  },
+
+  healthStatValue: {
+    color: "#0f172a",
+    fontSize: 11,
+    fontWeight: "900",
+    marginLeft: 4,
+  },
+
+  sectionCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 19,
+    borderWidth: 1,
+    borderColor: "#dce4ec",
+    padding: 16,
+    marginTop: 16,
+  },
+
+  sectionCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+
+  sectionCardTitle: {
+    color: "#0f172a",
+    fontSize: 17,
+    fontWeight: "900",
+  },
+
+  sectionCardSubtitle: {
+    color: "#64748b",
+    fontSize: 10,
+    marginTop: 3,
+  },
+
+  sectionAction: {
+    color: "#1d4ed8",
+    fontSize: 11,
+    fontWeight: "900",
+  },
+
+  alertRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 11,
+    borderBottomWidth: 1,
+    borderBottomColor: "#edf2f7",
+  },
+
+  alertIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 11,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 11,
+  },
+
+  alertCritical: {
+    backgroundColor: "#fee2e2",
+  },
+
+  alertWarning: {
+    backgroundColor: "#fef3c7",
+  },
+
+  rowTitle: {
+    color: "#0f172a",
+    fontSize: 13,
+    fontWeight: "900",
+  },
+
+  rowSubtitle: {
+    color: "#64748b",
+    fontSize: 10,
+    marginTop: 3,
+  },
+
+  lastRow: {
+    borderBottomWidth: 0,
+  },
+
+  allHealthyCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#ecfdf5",
+    borderWidth: 1,
+    borderColor: "#bbf7d0",
+    borderRadius: 18,
+    padding: 16,
+    marginTop: 16,
+  },
+
+  allHealthyIcon: {
+    width: 38,
+    height: 38,
+    lineHeight: 38,
+    borderRadius: 12,
+    backgroundColor: "#16a34a",
+    color: "#ffffff",
+    fontSize: 18,
+    fontWeight: "900",
+    textAlign: "center",
+    marginRight: 12,
+    overflow: "hidden",
+  },
+
+  allHealthyTitle: {
+    color: "#166534",
+    fontSize: 14,
+    fontWeight: "900",
+  },
+
+  allHealthyText: {
+    color: "#15803d",
+    fontSize: 10,
+    marginTop: 3,
+  },
+
+  sellerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 11,
+    borderBottomWidth: 1,
+    borderBottomColor: "#edf2f7",
+  },
+
+  rankCircle: {
+    width: 31,
+    height: 31,
+    borderRadius: 10,
+    backgroundColor: "#eff6ff",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 11,
+  },
+
+  rankText: {
+    color: "#1d4ed8",
+    fontSize: 11,
+    fontWeight: "900",
+  },
+
+  sellerHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+
+  sellerValue: {
+    color: "#1d4ed8",
+    fontSize: 11,
+    fontWeight: "900",
+  },
+
+  barTrack: {
+    height: 5,
+    backgroundColor: "#e2e8f0",
+    borderRadius: 999,
+    overflow: "hidden",
+    marginTop: 7,
+  },
+
+  barFill: {
+    height: "100%",
+    backgroundColor: "#3b82f6",
+    borderRadius: 999,
+  },
+
+  chart: {
+    marginLeft: -11,
+    borderRadius: 12,
+  },
+
+  valueRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 11,
+    borderBottomWidth: 1,
+    borderBottomColor: "#edf2f7",
+  },
+
+  valueText: {
+    color: "#1d4ed8",
+    fontSize: 12,
+    fontWeight: "900",
+  },
+
+  emptyState: {
+    alignItems: "center",
+    paddingVertical: 22,
+    paddingHorizontal: 15,
+  },
+
+  emptyIcon: {
+    fontSize: 28,
+    marginBottom: 8,
+  },
+
+  emptyText: {
+    color: "#64748b",
+    fontSize: 11,
+    lineHeight: 17,
+    textAlign: "center",
+  },
+
+  quickActionGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+
+  quickAction: {
+    width: "48.5%",
+    minHeight: 84,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#dce4ec",
+    borderRadius: 17,
+    padding: 13,
+  },
+
+  quickActionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    backgroundColor: "#eff6ff",
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 10,
   },
 
-  categoryLabel: {
-    flex: 1,
-    color: "#fff",
-    fontWeight: "700",
-    fontSize: 13,
-  },
-
-  categoryValue: {
-    width: 70,
-    color: "#fff",
-    textAlign: "right",
-    fontWeight: "700",
-    fontSize: 12,
-  },
-
-  categoryPercent: {
-    width: 50,
-    color: "#38bdf8",
-    textAlign: "right",
+  quickActionIconText: {
+    color: "#1d4ed8",
+    fontSize: 18,
     fontWeight: "900",
+  },
+
+  quickActionTitle: {
+    flex: 1,
+    color: "#0f172a",
     fontSize: 12,
+    fontWeight: "900",
+  },
+
+  exportButton: {
+    minHeight: 52,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#1d4ed8",
+    borderRadius: 16,
+    marginTop: 18,
+  },
+
+  exportButtonIcon: {
+    color: "#ffffff",
+    fontSize: 20,
+    fontWeight: "900",
+    marginRight: 8,
+  },
+
+  exportButtonText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "900",
+  },
+
+  proScreen: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 28,
+  },
+
+  proIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 25,
+    backgroundColor:
+      "rgba(255,255,255,0.14)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  proIcon: {
+    fontSize: 38,
+  },
+
+  proTitle: {
+    color: "#ffffff",
+    fontSize: 27,
+    fontWeight: "900",
+    marginTop: 22,
+  },
+
+  proDescription: {
+    color: "#cbd5e1",
+    fontSize: 13,
+    lineHeight: 21,
+    textAlign: "center",
+    marginTop: 10,
+  },
+
+  proButton: {
+    backgroundColor: "#ffffff",
+    borderRadius: 15,
+    paddingHorizontal: 30,
+    paddingVertical: 14,
+    marginTop: 25,
+  },
+
+  proButtonText: {
+    color: "#1d4ed8",
+    fontSize: 15,
+    fontWeight: "900",
   },
 });
 
 export default Dashboard;
-
-
-// import a from "@/components/ScreenWrapper";
-// import { useProUser } from "@/context/ProUserContext";
-// import { getStockItems } from "@/lib/storage";
-// import React, { useEffect } from "react";
-// import { Text, View } from "react-native";
-
-// export default function Dashboard() {
-//   const { isProUser, loading } = useProUser();
-  
-//   useEffect(() => {
-//     const fetchData = async () => {
-//       const stock = await getStockItems();
-//       console.log("stock loaded", stock.length);
-//     };
-
-//     fetchData();
-//   }, []);
-//   if (!isProUser) {
-//     return (
-//       <ScreenWrapper>
-//         <View style={{ padding: 20 }}>
-//           <Text>Dashboard is Pro only</Text>
-//         </View>
-//       </ScreenWrapper>
-//     );
-//   }
-//   return (
-//     <ScreenWrapper>
-//       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-//         <Text>Dashboard</Text>
-//         <Text>{loading ? "Loading" : isProUser ? "Pro" : "Free"}</Text>
-//       </View>
-//     </ScreenWrapper>
-//   );
-// }

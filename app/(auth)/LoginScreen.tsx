@@ -154,7 +154,7 @@ const LoginScreen: React.FC = () => {
 
       await loginWithUser(data.userId, data.secret);
       Alert.alert("Logged in with Apple");
-      router.replace("/screens/PaywallScreen");
+      router.replace("/(tabs)");
     } catch (err: any) {
       Alert.alert("Apple Sign-In Failed", err.message);
     } finally {

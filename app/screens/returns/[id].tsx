@@ -123,6 +123,8 @@ const EditReturnScreen: React.FC = () => {
         quantity,
         reason,
         supplierName: stock?.supplierName || "",
+        supplierId: stock?.supplierId || "",
+        status: "pending_return",
         syncedAt: "",
         synced: false,
       });

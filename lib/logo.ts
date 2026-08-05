@@ -1,5 +1,5 @@
 import { storage } from "@/appwrite";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 
 const BUCKET_ID = "68215d59001c82087763";
 

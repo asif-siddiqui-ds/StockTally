@@ -3,8 +3,8 @@ import ScreenWrapper from "@/components/ScreenWrapper";
 import {
   getStockItems,
   saveSaleItem,
-  updateStockQuantity,
   saveStockMovement,
+  updateStockQuantity,
 } from "@/lib/storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -170,7 +170,7 @@ const BulkSaleScreen = () => {
                 `${totalProducts} product(s) processed successfully.`
               );
 
-              router.replace("/(tabs)/saleList");
+              router.replace("/screens/stock/stockOutHistory");
             } catch (error: any) {
               Alert.alert(
                 "Bulk Sale Failed",

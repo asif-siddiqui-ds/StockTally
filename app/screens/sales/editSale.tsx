@@ -1541,6 +1541,787 @@
 // });
 // export default EditSaleScreen;
 
+// import ScreenWrapper from '@/components/ScreenWrapper';
+// import {
+//   getSaleItems,
+//   getStockItems,
+//   saveAllSales,
+//   saveStockMovement,
+//   updateStockQuantity,
+// } from '@/lib/storage';
+// import { LinearGradient } from 'expo-linear-gradient';
+// import { useLocalSearchParams, useRouter } from 'expo-router';
+// import React, { useEffect, useState } from 'react';
+// import {
+//   Alert,
+//   StyleSheet,
+//   Text,
+//   TextInput,
+//   TouchableOpacity,
+//   useColorScheme,
+//   View
+// } from 'react-native';
+// import { Dropdown } from 'react-native-element-dropdown';
+
+// const EditSaleScreen = () => {
+//   const router = useRouter();
+//   const { salesId } = useLocalSearchParams<{ salesId: string }>();
+
+//   const [stockItems, setStockItems] = useState<any[]>([]);
+//   const [saleItems, setSaleItems] = useState<any[]>([]);
+//   const [originalSale, setOriginalSale] = useState<any[]>([]);
+//   const [buyerName, setBuyerName] = useState('');
+//   const [paidStatus, setPaidStatus] = useState(false);
+//   const [date, setDate] = useState('');
+//   const colorScheme = useColorScheme();
+//   const textColor = colorScheme === "dark" ? "#fff" : "#000";
+//   const bgColor = colorScheme === "dark" ? "#121212" : "#f5f5f5";
+//   const cardColor = colorScheme === "dark" ? "#1e1e1e" : "#fff";
+//   const inputBg = colorScheme === "dark" ? "#1c1c1c" : "#fff";
+
+//   // 🔹 New item form
+//   const [selectedStockId, setSelectedStockId] = useState('');
+//   const [quantity, setQuantity] = useState<number | ''>('');
+//   const [price, setPrice] = useState<number | ''>('');
+
+//   useEffect(() => {
+//     const loadData = async () => {
+//       const allSales = await getSaleItems();
+//       const stockList = await getStockItems();
+//       setStockItems(stockList);
+
+//       const thisSale = allSales.filter((s) => s.salesId === salesId);
+//       if (thisSale.length === 0) {
+//         Alert.alert('Error', 'Sale not found.');
+//         router.back();
+//         return;
+//       }
+
+//       setSaleItems(thisSale);
+//       setOriginalSale(thisSale); // keep copy for comparison
+//       setBuyerName(thisSale[0].buyerName);
+//       setPaidStatus(thisSale[0].paid ?? false);
+//       setDate(thisSale[0].date);
+//     };
+//     loadData();
+//   }, [salesId]);
+
+//   // 🧩 Add another item
+//   const handleAddItem = () => {
+//     if (!selectedStockId || quantity === '' || price === '') {
+//       Alert.alert('Error', 'Please select an item and enter quantity and price.');
+//       return;
+//     }
+
+//     const selectedStock = stockItems.find((s) => s.id === selectedStockId);
+//     if (!selectedStock) {
+//       Alert.alert('Error', 'Selected stock item not found.');
+//       return;
+//     }
+//     if (quantity > selectedStock.quantity) {
+//       Alert.alert('Error', 'Quantity exceeds available stock.');
+//       return;
+//     }
+
+//     const newItem = {
+//       salesId,
+//       stockItemId: selectedStockId,
+//       name: selectedStock.name,
+//       quantity,
+//       price,
+//       buyerName,
+//       paid: paidStatus,
+//       date,
+//     };
+
+//     setSaleItems((prev) => [...prev, newItem]);
+//     setSelectedStockId('');
+//     setQuantity('');
+//     setPrice('');
+
+//     Alert.alert('✅ Added', `${selectedStock.name} added to sale.`);
+//   };
+
+//   // 💾 Save updates (atomic + smart stock adjustment)
+//   // const handleSaveChanges = async () => {
+//   //   try {
+//   //     if (!buyerName) {
+//   //       Alert.alert('Error', 'Please enter buyer name.');
+//   //       return;
+//   //     }
+//   //     if (saleItems.length === 0) {
+//   //       Alert.alert('Error', 'Sale must include at least one item.');
+//   //       return;
+//   //     }
+
+//   //     // 🧮 Load all existing sales
+//   //     const allSales = await getSaleItems();
+//   //     const remainingSales = allSales.filter((s) => s.salesId !== salesId);
+
+//   //     // 🆕 Prepare updated sale items
+//   //     const updatedSaleItems = saleItems.map((item) => ({
+//   //       ...item,
+//   //       salesId,
+//   //       buyerName,
+//   //       paid: paidStatus,
+//   //       date,
+//   //     }));
+
+//   //     // 💾 Save all
+//   //     await saveAllSales([...remainingSales, ...updatedSaleItems]);
+
+//   //     // 🔧 Adjust stock based on delta
+//   //     for (const updatedItem of updatedSaleItems) {
+//   //       const stock = stockItems.find((s) => s.id === updatedItem.stockItemId);
+//   //       const oldItem = originalSale.find(
+//   //         (o) => o.stockItemId === updatedItem.stockItemId
+//   //       );
+
+//   //       if (stock) {
+//   //         let delta = 0;
+
+//   //         if (oldItem) {
+//   //           // Existing item edited
+//   //           delta = updatedItem.quantity - oldItem.quantity;
+//   //         } else {
+//   //           // New item added
+//   //           delta = updatedItem.quantity;
+//   //         }
+
+//   //         const newStockQty = stock.quantity - delta;
+//   //         await updateStockQuantity(updatedItem.stockItemId, newStockQty);
+//   //       }
+//   //     }
+
+//   //     // 🗑️ Restore stock for removed items
+//   //     for (const oldItem of originalSale) {
+//   //       const stillExists = updatedSaleItems.find(
+//   //         (i) => i.stockItemId === oldItem.stockItemId
+//   //       );
+//   //       if (!stillExists) {
+//   //         const stock = stockItems.find((s) => s.id === oldItem.stockItemId);
+//   //         if (stock) {
+//   //           const restoredQty = stock.quantity + oldItem.quantity;
+//   //           await updateStockQuantity(oldItem.stockItemId, restoredQty);
+//   //         }
+//   //       }
+//   //     }
+
+//   //     Alert.alert('✅ Success', 'Sale updated successfully.', [
+//   //       {
+//   //         text: 'OK',
+//   //         onPress: () =>
+//   //           router.replace({
+//   //             pathname: '/screens/sales/viewSaleScreen',
+//   //             params: { salesId },
+//   //           }),
+//   //       },
+//   //     ]);
+//   //   } catch (err) {
+//   //     console.error('❌ Error saving sale:', err);
+//   //     Alert.alert('Error', 'Failed to update sale.');
+//   //   }
+//   // };
+
+//   // const handleSaveChanges = async () => {
+//   //   try {
+//   //     if (!buyerName) {
+//   //       Alert.alert("Error", "Please enter buyer name.");
+//   //       return;
+//   //     }
+
+//   //     if (saleItems.length === 0) {
+//   //       Alert.alert("Error", "Sale must include at least one item.");
+//   //       return;
+//   //     }
+
+//   //     const allSales = await getSaleItems();
+//   //     const remainingSales = allSales.filter((s) => s.salesId !== salesId);
+
+//   //     const updatedSaleItems = saleItems.map((item) => ({
+//   //       ...item,
+//   //       salesId,
+//   //       buyerName,
+//   //       paid: paidStatus,
+//   //       date,
+//   //       quantity: Number(item.quantity),
+//   //       price: Number(item.price),
+//   //       synced: false,
+//   //       syncedAt: "",
+//   //     }));
+
+//   //     await saveAllSales([...remainingSales, ...updatedSaleItems]);
+
+//   //     // 🔧 Adjust stock based on updated / added sale items
+//   //     for (const updatedItem of updatedSaleItems) {
+//   //       const stock = stockItems.find((s) => s.id === updatedItem.stockItemId);
+//   //       const oldItem = originalSale.find(
+//   //         (o) => o.stockItemId === updatedItem.stockItemId
+//   //       );
+
+//   //       if (stock) {
+//   //         let delta = 0;
+
+//   //         if (oldItem) {
+//   //           delta = Number(updatedItem.quantity) - Number(oldItem.quantity);
+//   //         } else {
+//   //           delta = Number(updatedItem.quantity);
+//   //         }
+
+//   //         if (delta !== 0) {
+//   //           const newStockQty = Number(stock.quantity) - delta;
+
+//   //           await updateStockQuantity(updatedItem.stockItemId, newStockQty);
+
+//   //           await saveStockMovement({
+//   //             stockItemId: updatedItem.stockItemId,
+//   //             itemName: updatedItem.name || stock.name,
+//   //             type: delta > 0 ? "OUT" : "IN",
+//   //             quantity: Math.abs(delta),
+//   //             source: "QUICK_SALE",
+//   //             sourceLabel:
+//   //               delta > 0
+//   //                 ? "Quick sale updated - extra stock sold"
+//   //                 : "Quick sale updated - stock restored",
+//   //             balanceAfter: newStockQty,
+//   //             referenceId: salesId,
+//   //             referenceType: "SALE",
+//   //             note: `Sale updated for ${buyerName}`,
+//   //           });
+//   //         }
+//   //       }
+//   //     }
+
+//   //     // 🗑️ Restore stock for removed sale items
+//   //     for (const oldItem of originalSale) {
+//   //       const stillExists = updatedSaleItems.find(
+//   //         (i) => i.stockItemId === oldItem.stockItemId
+//   //       );
+
+//   //       if (!stillExists) {
+//   //         const stock = stockItems.find((s) => s.id === oldItem.stockItemId);
+
+//   //         if (stock) {
+//   //           const restoredQty =
+//   //             Number(stock.quantity) + Number(oldItem.quantity);
+
+//   //           await updateStockQuantity(oldItem.stockItemId, restoredQty);
+
+//   //           await saveStockMovement({
+//   //             stockItemId: oldItem.stockItemId,
+//   //             itemName: oldItem.name || stock.name,
+//   //             type: "IN",
+//   //             quantity: Number(oldItem.quantity),
+//   //             source: "QUICK_SALE",
+//   //             sourceLabel: "Quick sale item removed - stock restored",
+//   //             balanceAfter: restoredQty,
+//   //             referenceId: salesId,
+//   //             referenceType: "SALE",
+//   //             note: `Item removed from sale for ${buyerName}`,
+//   //           });
+//   //         }
+//   //       }
+//   //     }
+
+//   //     Alert.alert("✅ Success", "Sale updated successfully.", [
+//   //       {
+//   //         text: "OK",
+//   //         onPress: () =>
+//   //           router.replace({
+//   //             pathname: "/screens/sales/viewSaleScreen",
+//   //             params: { salesId },
+//   //           }),
+//   //       },
+//   //     ]);
+//   //   } catch (err) {
+//   //     console.error("❌ Error saving sale:", err);
+//   //     Alert.alert("Error", "Failed to update sale.");
+//   //   }
+//   // };
+
+//   const handleSaveChanges = async () => {
+//     try {
+//       if (!buyerName) {
+//         Alert.alert("Error", "Please enter buyer name.");
+//         return;
+//       }
+
+//       if (saleItems.length === 0) {
+//         Alert.alert("Error", "Sale must include at least one item.");
+//         return;
+//       }
+
+//       const allSales = await getSaleItems();
+//       const remainingSales = allSales.filter((s) => s.salesId !== salesId);
+
+//       const updatedSaleItems = saleItems.map((item) => ({
+//         ...item,
+//         salesId,
+//         buyerName,
+//         paid: paidStatus,
+//         date,
+//         quantity: Number(item.quantity),
+//         price: Number(item.price),
+//         synced: false,
+//         syncedAt: "",
+//       }));
+
+//       await saveAllSales([...remainingSales, ...updatedSaleItems]);
+
+//       // 🔧 Adjust stock based on updated / added sale items
+//       for (const updatedItem of updatedSaleItems) {
+//         const stock = stockItems.find((s) => s.id === updatedItem.stockItemId);
+//         const oldItem = originalSale.find(
+//           (o) => o.stockItemId === updatedItem.stockItemId
+//         );
+
+//         if (stock) {
+//           let delta = 0;
+
+//           if (oldItem) {
+//             delta = Number(updatedItem.quantity) - Number(oldItem.quantity);
+//           } else {
+//             delta = Number(updatedItem.quantity);
+//           }
+
+//           if (delta !== 0) {
+//             const newStockQty = Number(stock.quantity) - delta;
+
+//             await updateStockQuantity(updatedItem.stockItemId, newStockQty);
+
+//             await saveStockMovement({
+//               stockItemId: updatedItem.stockItemId,
+//               itemName: updatedItem.name || stock.name,
+//               type: delta > 0 ? "OUT" : "IN",
+//               quantity: Math.abs(delta),
+//               source: "QUICK_SALE",
+//               sourceLabel:
+//                 delta > 0
+//                   ? "Quick sale updated - extra stock sold"
+//                   : "Quick sale updated - stock restored",
+//               balanceAfter: newStockQty,
+//               referenceId: salesId,
+//               referenceType: "SALE",
+//               note: `Sale updated for ${buyerName}`,
+//             });
+//           }
+//         }
+//       }
+
+//       // 🗑️ Restore stock for removed sale items
+//       for (const oldItem of originalSale) {
+//         const stillExists = updatedSaleItems.find(
+//           (i) => i.stockItemId === oldItem.stockItemId
+//         );
+
+//         if (!stillExists) {
+//           const stock = stockItems.find((s) => s.id === oldItem.stockItemId);
+
+//           if (stock) {
+//             const restoredQty =
+//               Number(stock.quantity) + Number(oldItem.quantity);
+
+//             await updateStockQuantity(oldItem.stockItemId, restoredQty);
+
+//             await saveStockMovement({
+//               stockItemId: oldItem.stockItemId,
+//               itemName: oldItem.name || stock.name,
+//               type: "IN",
+//               quantity: Number(oldItem.quantity),
+//               source: "QUICK_SALE",
+//               sourceLabel: "Quick sale item removed - stock restored",
+//               balanceAfter: restoredQty,
+//               referenceId: salesId,
+//               referenceType: "SALE",
+//               note: `Item removed from sale for ${buyerName}`,
+//             });
+//           }
+//         }
+//       }
+
+//       Alert.alert("✅ Success", "Sale updated successfully.", [
+//         {
+//           text: "OK",
+//           onPress: () =>
+//             router.replace({
+//               pathname: "/screens/sales/viewSaleScreen",
+//               params: { salesId },
+//             }),
+//         },
+//       ]);
+//     } catch (err) {
+//       console.error("❌ Error saving sale:", err);
+//       Alert.alert("Error", "Failed to update sale.");
+//     }
+//   };
+
+//   // 🗑️ Delete an item
+//   const handleDeleteItem = (stockItemId: string) => {
+//     Alert.alert('Confirm', 'Remove this item?', [
+//       { text: 'Cancel', style: 'cancel' },
+//       {
+//         text: 'Delete',
+//         style: 'destructive',
+//         onPress: () =>
+//           setSaleItems((prev) => prev.filter((i) => i.stockItemId !== stockItemId)),
+//       },
+//     ]);
+//   };
+
+//   // 🧾 Build dropdown data with dynamic state (stable, sorted, reactive)
+//   const dropdownData = React.useMemo(() => {
+//     // 1️⃣ Map current stock items
+//     const baseList = stockItems.map((item) => {
+//       const isInSale = saleItems.some((s) => s.stockItemId === item.id);
+//       return {
+//         label: isInSale
+//           ? `${item.name} (Item already selected)`
+//           : `${item.name} (${item.quantity} in stock)`,
+//         value: item.id,
+//         disabled: isInSale,
+//       };
+//     });
+
+//     // 2️⃣ If the selected sold item isn’t in stock, add it back manually
+//     if (selectedStockId && !baseList.some((d) => d.value === selectedStockId)) {
+//       const soldItem = saleItems.find((s) => s.stockItemId === selectedStockId);
+//       if (soldItem) {
+//         baseList.push({
+//           label: `${soldItem.name} (Sold / Unavailable)`,
+//           value: soldItem.stockItemId,
+//           disabled: true,
+//         });
+//       }
+//     }
+
+//     // 3️⃣ Sort — available first, disabled last
+//     const sortedList = [
+//       ...baseList.filter((i) => !i.disabled),
+//       ...baseList.filter((i) => i.disabled),
+//     ];
+
+//     return sortedList;
+//   }, [stockItems, saleItems, selectedStockId]);
+
+
+//   // return (
+//   //   <ScreenWrapper>
+//   //     <LinearGradient colors={['#0d1b2a', '#1b263b', '#415a77']} style={styles.gradient}>
+//   //       <SafeAreaView style={{ flex: 1 }}>
+//   //         <ScrollView contentContainerStyle={styles.scrollContainer}>
+//   //           <View style={styles.form}>
+//   //             <Text style={styles.title}>Edit Sale</Text>
+
+//   //             {/* <Text style={styles.label}>Buyer Name</Text> */}
+//   //             <TextInput
+//   //               value={buyerName}
+//   //               onChangeText={setBuyerName}
+//   //               style={styles.input}
+//   //               placeholder="Enter buyer name"
+//   //               placeholderTextColor={colorScheme === "dark" ? "#aaa" : "#666"}
+
+//   //             />
+
+//   //             {/* 🧾 Stock Item Dropdown */}
+//   //             <Dropdown
+//   //               style={styles.dropdown}
+//   //               data={dropdownData}
+//   //               labelField="label"
+//   //               valueField="value"
+//   //               placeholder="Select Stock Item"
+//   //               value={selectedStockId}
+//   //               disable={false}
+//   //               renderItem={(item) => (
+//   //                 <View
+//   //                   style={{
+//   //                     paddingVertical: 10,
+//   //                     paddingHorizontal: 12,
+//   //                     opacity: item.disabled ? 0.5 : 1,
+//   //                     flexDirection: "row",
+//   //                     alignItems: "center",
+//   //                     justifyContent: "space-between",
+//   //                   }}
+//   //                 >
+//   //                   <Text style={{ color: "#000" }}>{item.label}</Text>
+//   //                   {item.disabled && (
+//   //                     <Text style={{ color: "#d9534f", fontSize: 12, fontWeight: "600" }}>
+//   //                       🚫
+//   //                     </Text>
+//   //                   )}
+//   //                 </View>
+//   //               )}
+//   //               onChange={(item) => {
+//   //                 if (item.disabled) {
+//   //                   Alert.alert(
+//   //                     "Item already selected",
+//   //                     "This stock item is already part of the current sale."
+//   //                   );
+//   //                   return;
+//   //                 }
+
+//   //                 setSelectedStockId(item.value);
+//   //                 const selected = stockItems.find((s) => s.id === item.value);
+//   //                 if (selected) {
+//   //                   setPrice(selected.price ?? "");
+//   //                 } else {
+//   //                   const soldItem = saleItems.find((s) => s.stockItemId === item.value);
+//   //                   if (soldItem) setPrice(soldItem.price);
+//   //                 }
+//   //               }}
+//   //             />
+//   //             {/* <Text style={styles.label}>Quantity</Text> */}
+//   //             <TextInput
+//   //               value={quantity === '' ? '' : String(quantity)}
+//   //               onChangeText={(val) => setQuantity(val === '' ? '' : parseInt(val))}
+//   //               keyboardType="numeric"
+//   //               style={styles.input}
+//   //               placeholder="Enter quantity"
+//   //               placeholderTextColor={colorScheme === "dark" ? "#aaa" : "#666"}
+
+//   //             />
+
+//   //             {/* <Text style={styles.label}>Price</Text> */}
+//   //             <TextInput
+//   //               value={price === '' ? '' : String(price)}
+//   //               onChangeText={(val) => setPrice(val === '' ? '' : parseFloat(val))}
+//   //               keyboardType="numeric"
+//   //               style={styles.input}
+//   //               placeholder="Enter price"
+//   //               placeholderTextColor={colorScheme === "dark" ? "#aaa" : "#666"}
+
+//   //             />
+
+//   //             <TouchableOpacity onPress={handleAddItem}>
+//   //               <LinearGradient colors={['#2196F3', '#0D47A1']} style={styles.gradientButton}>
+//   //                 <Text style={styles.buttonText}>+ Add Item</Text>
+//   //               </LinearGradient>
+//   //             </TouchableOpacity>
+
+//   //             <TouchableOpacity onPress={handleSaveChanges}>
+//   //               <LinearGradient colors={['#4CAF50', '#2E7D32']} style={styles.gradientButton}>
+//   //                 <Text style={styles.buttonText}>💾 Save Changes</Text>
+//   //               </LinearGradient>
+//   //             </TouchableOpacity>
+
+//   //             {/* Preview items */}
+//   //             {saleItems.length > 0 && (
+//   //               <View style={{ marginTop: 20 }}>
+//   //                 <Text style={{ fontWeight: '700', fontSize: 18, marginBottom: 10, color: '#0d0c0cff' }}>
+//   //                   Current Sale Items:
+//   //                 </Text>
+//   //                 {saleItems.map((item, idx) => (
+//   //                   <View key={idx} style={styles.itemPreview}>
+//   //                     <Text style={{ color: '#fff' }}>
+//   //                       {idx + 1}. {item.name} — {item.quantity} × £{item.price.toFixed(2)}
+//   //                     </Text>
+//   //                     <TouchableOpacity onPress={() => handleDeleteItem(item.stockItemId)}>
+//   //                       <Text style={{ color: '#ff4d4d', fontWeight: '700' }}>✕</Text>
+//   //                     </TouchableOpacity>
+//   //                   </View>
+//   //                 ))}
+//   //               </View>
+//   //             )}
+//   //           </View>
+//   //         </ScrollView>
+//   //       </SafeAreaView>
+//   //     </LinearGradient>
+//   //   </ScreenWrapper>
+//   // );
+//   return (
+//     <ScreenWrapper scroll backgroundColor="#0d1b2a">
+//       <LinearGradient
+//         colors={['#0d1b2a', '#1b263b', '#415a77']}
+//         style={styles.gradient}
+//       >
+//         <View style={styles.scrollContainer}>
+//           <View style={styles.form}>
+//             <Text style={styles.title}>Edit Sale</Text>
+
+//             <TextInput
+//               value={buyerName}
+//               onChangeText={setBuyerName}
+//               style={styles.input}
+//               placeholder="Enter buyer name"
+//               placeholderTextColor={colorScheme === 'dark' ? '#aaa' : '#666'}
+//             />
+
+//             <Dropdown
+//               style={styles.dropdown}
+//               data={dropdownData}
+//               labelField="label"
+//               valueField="value"
+//               placeholder="Select Stock Item"
+//               value={selectedStockId}
+//               disable={false}
+//               renderItem={(item) => (
+//                 <View
+//                   style={{
+//                     paddingVertical: 10,
+//                     paddingHorizontal: 12,
+//                     opacity: item.disabled ? 0.5 : 1,
+//                     flexDirection: 'row',
+//                     alignItems: 'center',
+//                     justifyContent: 'space-between',
+//                   }}
+//                 >
+//                   <Text style={{ color: '#000' }}>{item.label}</Text>
+//                   {item.disabled && (
+//                     <Text style={{ color: '#d9534f', fontSize: 12, fontWeight: '600' }}>
+//                       🚫
+//                     </Text>
+//                   )}
+//                 </View>
+//               )}
+//               onChange={(item) => {
+//                 if (item.disabled) {
+//                   Alert.alert(
+//                     'Item already selected',
+//                     'This stock item is already part of the current sale.'
+//                   );
+//                   return;
+//                 }
+
+//                 setSelectedStockId(item.value);
+//                 const selected = stockItems.find((s) => s.id === item.value);
+
+//                 if (selected) {
+//                   setPrice(selected.price ?? '');
+//                 } else {
+//                   const soldItem = saleItems.find((s) => s.stockItemId === item.value);
+//                   if (soldItem) setPrice(soldItem.price);
+//                 }
+//               }}
+//             />
+
+//             <TextInput
+//               value={quantity === '' ? '' : String(quantity)}
+//               onChangeText={(val) => setQuantity(val === '' ? '' : parseInt(val))}
+//               keyboardType="number-pad"
+//               returnKeyType="done"
+//               onSubmitEditing={Keyboard.dismiss}
+//               style={styles.input}
+//               placeholder="Enter quantity"
+//               placeholderTextColor={colorScheme === 'dark' ? '#aaa' : '#666'}
+//             />
+
+//             <TextInput
+//               value={price === '' ? '' : String(price)}
+//               onChangeText={(val) => setPrice(val === '' ? '' : parseFloat(val))}
+//               keyboardType="decimal-pad"
+//               returnKeyType="done"
+//               onSubmitEditing={Keyboard.dismiss}
+//               style={styles.input}
+//               placeholder="Enter price"
+//               placeholderTextColor={colorScheme === 'dark' ? '#aaa' : '#666'}
+//             />
+
+//             <TouchableOpacity onPress={handleAddItem}>
+//               <LinearGradient
+//                 colors={['#2196F3', '#0D47A1']}
+//                 style={styles.gradientButton}
+//               >
+//                 <Text style={styles.buttonText}>+ Add Item</Text>
+//               </LinearGradient>
+//             </TouchableOpacity>
+
+//             <TouchableOpacity onPress={handleSaveChanges}>
+//               <LinearGradient
+//                 colors={['#4CAF50', '#2E7D32']}
+//                 style={styles.gradientButton}
+//               >
+//                 <Text style={styles.buttonText}>💾 Save Changes</Text>
+//               </LinearGradient>
+//             </TouchableOpacity>
+
+//             {saleItems.length > 0 && (
+//               <View style={styles.previewContainer}>
+//                 <Text style={styles.previewTitle}>Current Sale Items:</Text>
+
+//                 {saleItems.map((item, idx) => (
+//                   <View key={idx} style={styles.itemPreview}>
+//                     <Text style={{ color: '#fff' }}>
+//                       {idx + 1}. {item.name} — {item.quantity} × £{item.price.toFixed(2)}
+//                     </Text>
+
+//                     <TouchableOpacity onPress={() => handleDeleteItem(item.stockItemId)}>
+//                       <Text style={{ color: '#ff4d4d', fontWeight: '700' }}>✕</Text>
+//                     </TouchableOpacity>
+//                   </View>
+//                 ))}
+//               </View>
+//             )}
+//           </View>
+//         </View>
+//       </LinearGradient>
+//     </ScreenWrapper>
+//   );
+// };
+
+// const styles = StyleSheet.create({
+//   gradient: {
+//   flex: 1,
+//   minHeight: '100%',
+// },
+
+// scrollContainer: {
+//   padding: 20,
+//   paddingBottom: 150,
+// },
+
+// previewContainer: {
+//   marginTop: 20,
+// },
+
+// previewTitle: {
+//   fontWeight: '700',
+//   fontSize: 18,
+//   marginBottom: 10,
+//   color: '#fff',
+// },
+
+// scrollContainer: { padding: 30, paddingBottom: 120 },
+//   form: {
+//     backgroundColor: 'rgba(239, 230, 230, 1)',
+//     borderRadius: 16,
+//     padding: 20,
+//   },
+//   title: { fontSize: 22, fontWeight: '700', color: '#0f0f0fff', marginBottom: 10 },
+//   label: { color: '#0c0b0bff', fontSize: 16, marginTop: 10 },
+//   input: {
+//     backgroundColor: '#fff',
+//     borderRadius: 8,
+//     padding: 10,
+//     fontSize: 16,
+//     marginTop: 5,
+//   },
+//   dropdown: {
+//     height: 50,
+//     borderWidth: 1,
+//     borderRadius: 8,
+//     marginTop: 10,
+//     paddingHorizontal: 10,
+//   },
+//   gradientButton: {
+//     borderRadius: 8,
+//     paddingVertical: 14,
+//     alignItems: 'center',
+//     marginTop: 20,
+//   },
+//   buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
+//   itemPreview: {
+//     backgroundColor: '#45556e',
+//     borderRadius: 10,
+//     padding: 10,
+//     marginBottom: 8,
+//     flexDirection: 'row',
+//     justifyContent: 'space-between',
+//     alignItems: 'center',
+//   },
+// });
+
+// export default EditSaleScreen;
+
+
 import ScreenWrapper from '@/components/ScreenWrapper';
 import {
   getSaleItems,
@@ -1574,10 +2355,6 @@ const EditSaleScreen = () => {
   const [paidStatus, setPaidStatus] = useState(false);
   const [date, setDate] = useState('');
   const colorScheme = useColorScheme();
-  const textColor = colorScheme === "dark" ? "#fff" : "#000";
-  const bgColor = colorScheme === "dark" ? "#121212" : "#f5f5f5";
-  const cardColor = colorScheme === "dark" ? "#1e1e1e" : "#fff";
-  const inputBg = colorScheme === "dark" ? "#1c1c1c" : "#fff";
 
   // 🔹 New item form
   const [selectedStockId, setSelectedStockId] = useState('');
@@ -2112,7 +2889,7 @@ const EditSaleScreen = () => {
   //                 {saleItems.map((item, idx) => (
   //                   <View key={idx} style={styles.itemPreview}>
   //                     <Text style={{ color: '#fff' }}>
-  //                       {idx + 1}. {item.name} — {item.quantity} × £{item.price.toFixed(2)}
+  //                       {idx + 1}. {item.name} — {item.quantity} × £{Number(item.price || 0).toFixed(2)}
   //                     </Text>
   //                     <TouchableOpacity onPress={() => handleDeleteItem(item.stockItemId)}>
   //                       <Text style={{ color: '#ff4d4d', fontWeight: '700' }}>✕</Text>
@@ -2198,7 +2975,7 @@ const EditSaleScreen = () => {
               onChangeText={(val) => setQuantity(val === '' ? '' : parseInt(val))}
               keyboardType="number-pad"
               returnKeyType="done"
-              onSubmitEditing={Keyboard.dismiss}
+              blurOnSubmit={false}
               style={styles.input}
               placeholder="Enter quantity"
               placeholderTextColor={colorScheme === 'dark' ? '#aaa' : '#666'}
@@ -2209,7 +2986,7 @@ const EditSaleScreen = () => {
               onChangeText={(val) => setPrice(val === '' ? '' : parseFloat(val))}
               keyboardType="decimal-pad"
               returnKeyType="done"
-              onSubmitEditing={Keyboard.dismiss}
+              blurOnSubmit={false}
               style={styles.input}
               placeholder="Enter price"
               placeholderTextColor={colorScheme === 'dark' ? '#aaa' : '#666'}
@@ -2240,7 +3017,7 @@ const EditSaleScreen = () => {
                 {saleItems.map((item, idx) => (
                   <View key={idx} style={styles.itemPreview}>
                     <Text style={{ color: '#fff' }}>
-                      {idx + 1}. {item.name} — {item.quantity} × £{item.price.toFixed(2)}
+                      {idx + 1}. {item.name} — {item.quantity} × £{Number(item.price || 0).toFixed(2)}
                     </Text>
 
                     <TouchableOpacity onPress={() => handleDeleteItem(item.stockItemId)}>
@@ -2259,27 +3036,25 @@ const EditSaleScreen = () => {
 
 const styles = StyleSheet.create({
   gradient: {
-  flex: 1,
-  minHeight: '100%',
-},
+    flex: 1,
+    minHeight: '100%',
+  },
 
-scrollContainer: {
-  padding: 20,
-  paddingBottom: 150,
-},
+  scrollContainer: {
+    padding: 20,
+    paddingBottom: 120,
+  },
 
-previewContainer: {
-  marginTop: 20,
-},
+  previewContainer: {
+    marginTop: 20,
+  },
 
-previewTitle: {
-  fontWeight: '700',
-  fontSize: 18,
-  marginBottom: 10,
-  color: '#fff',
-},
-
-scrollContainer: { padding: 30, paddingBottom: 120 },
+  previewTitle: {
+    fontWeight: '700',
+    fontSize: 18,
+    marginBottom: 10,
+    color: '#fff',
+  },
   form: {
     backgroundColor: 'rgba(239, 230, 230, 1)',
     borderRadius: 16,

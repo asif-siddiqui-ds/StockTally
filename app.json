@@ -2,7 +2,7 @@
   "expo": {
     "name": "StockTally",
     "slug": "StockTally",
-    "version": "2.1.5",
+    "version": "2.1.6",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "stocktally",
@@ -11,7 +11,7 @@
     "ios": {
       "icon": "./assets/images/icon.png",
       "supportsTablet": true,
-      "buildNumber": "48",
+      "buildNumber": "49",
       "bundleIdentifier": "com.asif.Stocktally",
       "usesAppleSignIn": true,
       "infoPlist": {
@@ -31,7 +31,7 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.asif.Stocktally",
-      "versionCode": 48,
+      "versionCode": 49,
       "permissions": [
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",

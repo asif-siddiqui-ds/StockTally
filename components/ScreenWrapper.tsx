@@ -61,16 +61,75 @@
 
 // export default ScreenWrapper;
 
+// import React from "react";
+// import {
+//   Keyboard,
+//   KeyboardAvoidingView,
+//   Platform,
+//   ScrollView,
+//   StyleSheet,
+//   TouchableWithoutFeedback,
+//   View,
+// } from "react-native";
+// import { SafeAreaView } from "react-native-safe-area-context";
+
+// interface ScreenWrapperProps {
+//   children: React.ReactNode;
+//   scroll?: boolean;
+//   backgroundColor?: string;
+// }
+
+// const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
+//   children,
+//   scroll = false,
+//   backgroundColor = "#f9f9f9",
+// }) => {
+//   return (
+//     <SafeAreaView
+//       style={[styles.safeArea, { backgroundColor }]}
+//       edges={["left", "right"]}
+//     >
+//       <KeyboardAvoidingView
+//         style={styles.flex}
+//         behavior={Platform.OS === "ios" ? "padding" : "height"}
+//         keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
+//       >
+//         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+//           {scroll ? (
+//             <ScrollView
+//               style={styles.flex}
+//               contentContainerStyle={styles.scrollContent}
+//               showsVerticalScrollIndicator={false}
+//               keyboardShouldPersistTaps="handled"
+//               keyboardDismissMode="interactive"
+//             >
+//               {children}
+//             </ScrollView>
+//           ) : (
+//             <View style={styles.flex}>{children}</View>
+//           )}
+//         </TouchableWithoutFeedback>
+//       </KeyboardAvoidingView>
+//     </SafeAreaView>
+//   );
+// };
+
+// const styles = StyleSheet.create({
+//   safeArea: {
+//     flex: 1,
+//   },
+//   flex: {
+//     flex: 1,
+//   },
+//   scrollContent: {
+//     flexGrow: 1,
+//     paddingBottom: 120,
+//   },
+// });
+
 import React from "react";
-import {
-  Keyboard,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TouchableWithoutFeedback,
-  View,
-} from "react-native";
+import { StyleSheet, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 interface ScreenWrapperProps {
@@ -89,27 +148,25 @@ const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
       style={[styles.safeArea, { backgroundColor }]}
       edges={["left", "right"]}
     >
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
-      >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-          {scroll ? (
-            <ScrollView
-              style={styles.flex}
-              contentContainerStyle={styles.scrollContent}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="interactive"
-            >
-              {children}
-            </ScrollView>
-          ) : (
-            <View style={styles.flex}>{children}</View>
-          )}
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
+      {scroll ? (
+        <KeyboardAwareScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="always"
+          enableOnAndroid
+          enableAutomaticScroll
+          extraScrollHeight={16}
+          extraHeight={100}
+          keyboardOpeningTime={0}
+          nestedScrollEnabled
+          scrollEnabled
+        >
+          {children}
+        </KeyboardAwareScrollView>
+      ) : (
+        <View style={styles.flex}>{children}</View>
+      )}
     </SafeAreaView>
   );
 };
@@ -118,12 +175,14 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
+
   flex: {
     flex: 1,
   },
+
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 120,
+    paddingBottom: 40,
   },
 });
 
