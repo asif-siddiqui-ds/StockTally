@@ -8,22 +8,23 @@
     "scheme": "stocktally",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+
     "ios": {
       "icon": "./assets/images/icon.png",
       "supportsTablet": true,
-      "buildNumber": "49",
       "bundleIdentifier": "com.asif.Stocktally",
       "usesAppleSignIn": true,
       "infoPlist": {
-        "NSPhotoLibraryAddUsageDescription": "Allow this app to save files to your photo library",
-        "NSCameraUsageDescription": "StockTally uses camera for barcode and AI product scanning.",
-        "NSPhotoLibraryUsageDescription": "StockTally uses photo library to scan invoices and products.",
+        "NSPhotoLibraryAddUsageDescription": "Allow StockTally to save generated files and documents to your photo library.",
+        "NSCameraUsageDescription": "StockTally uses the camera for barcode and product scanning.",
+        "NSPhotoLibraryUsageDescription": "StockTally uses your photo library to select business logos and scan product or invoice images.",
         "UIBackgroundModes": [
           "fetch"
         ],
         "ITSAppUsesNonExemptEncryption": false
       }
     },
+
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
@@ -31,25 +32,26 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.asif.Stocktally",
-      "versionCode": 49,
       "permissions": [
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
         "CAMERA"
       ]
     },
+
     "runtimeVersion": {
       "policy": "appVersion"
     },
+
     "updates": {
       "url": "https://u.expo.dev/e5895148-30d8-4010-9c1b-5b7f3adc3c6d",
       "fallbackToCacheTimeout": 0
     },
+
     "web": {
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
+
     "plugins": [
       "expo-router",
       [
@@ -63,14 +65,21 @@
       ],
       "expo-sqlite",
       "expo-web-browser",
-      "expo-image-picker",
+       [
+            "expo-image-picker",
+            {
+                "microphonePermission": false
+            }
+        ],
       "expo-secure-store",
       "@react-native-community/datetimepicker"
     ],
+
     "experiments": {
       "typedRoutes": true,
-       "autolinkingModuleResolution": true
+      "autolinkingModuleResolution": true
     },
+
     "extra": {
       "appwriteEndpoint": "https://fra.cloud.appwrite.io/v1",
       "appwriteProjectId": "68215c9f00161f204345",

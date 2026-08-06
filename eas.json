@@ -1,8 +1,9 @@
 {
   "cli": {
-    "version": ">= 3.0.0",
+    "version": ">= 12.0.0",
     "appVersionSource": "remote"
   },
+
   "build": {
     "development": {
       "developmentClient": true,
@@ -14,6 +15,7 @@
         "gradleCommand": ":app:assembleDebug"
       }
     },
+
     "preview": {
       "distribution": "internal",
       "android": {
@@ -23,18 +25,20 @@
         "buildConfiguration": "Release"
       }
     },
+
     "production": {
       "distribution": "store",
       "ios": {
-        "autoIncrement": "buildNumber",
+        "autoIncrement": true,
         "image": "latest"
       },
       "android": {
         "buildType": "app-bundle",
-        "autoIncrement": "versionCode"
+        "autoIncrement": true
       }
     }
   },
+
   "submit": {
     "production": {}
   }
